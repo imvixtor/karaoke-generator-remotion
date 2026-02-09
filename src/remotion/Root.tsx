@@ -9,6 +9,7 @@ import {
   VIDEO_WIDTH,
 } from "../../types/constants";
 import { NextLogo } from "./MyComp/NextLogo";
+import { KaraokeComposition } from "./KaraokeComposition";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -31,6 +32,20 @@ export const RemotionRoot: React.FC = () => {
         height={140}
         defaultProps={{
           outProgress: 0,
+        }}
+      />
+      <Composition
+        id="KaraokeVideo"
+        component={KaraokeComposition}
+        durationInFrames={30 * 30} // Default duration, will be dynamic
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          audioSrc: "",
+          captions: [],
+          backgroundType: "black",
+          fps: 30,
         }}
       />
     </>
