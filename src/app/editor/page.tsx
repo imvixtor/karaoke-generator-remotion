@@ -280,6 +280,15 @@ export default function EditorPage() {
     };
 
     const handleRender = useCallback(async () => {
+        if (!currentAudioSrc) {
+            alert('Vui lòng chọn file âm thanh trước khi render.');
+            return;
+        }
+        if (captions.length === 0) {
+            alert('Vui lòng thêm phụ đề trước khi render.');
+            return;
+        }
+
         try {
             setRenderStatus('Đang render...');
             const resp = await fetch('/api/render', {
@@ -304,11 +313,23 @@ export default function EditorPage() {
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans">
-            <header className="mb-8 border-b border-zinc-800 pb-6">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent mb-2">
-                    Karaoke Generator
-                </h1>
-                <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
+            <header className="mb-8 border-b border-zinc-800 pb-6 flex justify-between items-end">
+                <div>
+                    <h1 className="text-3xl font-bold text-green-500 mb-2">
+                        Karaoke Generator
+                    </h1>
+                    <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                    {renderStatus && <span className="text-sm font-mono text-cyan-400 animate-pulse">{renderStatus}</span>}
+                    <button
+                        type="button"
+                        onClick={handleRender}
+                        className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black font-bold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                    >
+                        Render Video
+                    </button>
+                </div>
             </header>
 
             <div className="flex flex-wrap gap-8">
@@ -466,7 +487,7 @@ export default function EditorPage() {
 
                 <div className="flex-1 min-w-0">
                     <div className="mb-6">
-                        <h2 className="text-lg font-bold text-zinc-400 mb-4">Xem trước</h2>
+                        {/* <h2 className="text-lg font-bold text-zinc-400 mb-4">Xem trước</h2> */}
                         {currentAudioSrc ? (
                             <div className="rounded-xl overflow-hidden border border-zinc-800 bg-black aspect-video shadow-2xl">
                                 <Player
@@ -567,19 +588,7 @@ export default function EditorPage() {
                         </div>
                     </div>
 
-                    <div className="mt-6 p-6 bg-zinc-900 rounded-xl border border-zinc-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-zinc-400">Xuất video</h3>
-                            {renderStatus && <span className="text-sm font-mono text-cyan-400 animate-pulse">{renderStatus}</span>}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleRender}
-                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all"
-                        >
-                            Render Video
-                        </button>
-                    </div>
+                    {/* Render section moved to header */}
                 </div>
             </div>
         </div>
