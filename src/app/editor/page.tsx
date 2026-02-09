@@ -10,21 +10,25 @@ import { useVideoDuration } from '../../hooks/useVideoDuration';
 
 const STORAGE_KEY = 'karaoke-editor-data';
 
-// Helper: Chuyển ms sang mm:ss
+// Helper: Chuyển ms sang mm:ss.ms (2 chữ số phần ms)
 function msToTimeString(ms: number): string {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const milliseconds = Math.floor((ms % 1000) / 10); // Lấy 2 chữ số đầu của ms
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
 }
 
-// Helper: Chuyển mm:ss sang ms
+// Helper: Chuyển mm:ss.ms sang ms
 function timeStringToMs(timeStr: string): number {
+    // Định dạng mm:ss.ms hoặc mm:ss
     const parts = timeStr.split(':');
     if (parts.length !== 2) return 0;
     const minutes = parseInt(parts[0], 10) || 0;
-    const seconds = parseFloat(parts[1]) || 0;
-    return (minutes * 60 + seconds) * 1000;
+
+    // parseFloat(parts[1]) sẽ parse cả phần thập phân, ví dụ .12 -> 0.12s = 120ms
+    const secondsFloat = parseFloat(parts[1]) || 0;
+    return Math.round((minutes * 60 + secondsFloat) * 1000);
 }
 
 const FPS = 30;
@@ -41,9 +45,10 @@ export default function EditorPage() {
     const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
     const [sungColor, setSungColor] = useState('#00ff88');
     const [unsungColor, setUnsungColor] = useState('#ffffff');
-    const [fontSize, setFontSize] = useState(72);
-    const [backgroundDim, setBackgroundDim] = useState(0.6);
-    const [backgroundBlur, setBackgroundBlur] = useState(0);
+    const [fontSize, setFontSize] = useState(65);
+    const [enableShadow, setEnableShadow] = useState(false);
+    const [backgroundDim, setBackgroundDim] = useState(0.75);
+    const [backgroundBlur, setBackgroundBlur] = useState(30);
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState(0);
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
 
@@ -227,11 +232,12 @@ export default function EditorPage() {
             sungColor,
             unsungColor,
             fontSize,
+            enableShadow,
             audioUrl,
             backgroundUrl,
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, audioUrl, backgroundUrl]);
+    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -248,6 +254,7 @@ export default function EditorPage() {
                 if (data.sungColor) setSungColor(data.sungColor);
                 if (data.unsungColor) setUnsungColor(data.unsungColor);
                 if (data.fontSize) setFontSize(data.fontSize);
+                if (data.enableShadow !== undefined) setEnableShadow(data.enableShadow);
                 if (data.audioUrl) setAudioUrl(data.audioUrl);
                 if (data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
             } catch (e) {
@@ -268,6 +275,7 @@ export default function EditorPage() {
         sungColor,
         unsungColor,
         fontSize,
+        enableShadow,
         fps: FPS,
     };
 
@@ -442,6 +450,17 @@ export default function EditorPage() {
                                 className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
                             />
                         </label>
+                        <div className="mt-4">
+                            <label className="flex items-center gap-2 text-xs">
+                                <input
+                                    type="checkbox"
+                                    checked={enableShadow}
+                                    onChange={(e) => setEnableShadow(e.target.checked)}
+                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                />
+                                Bật đổ bóng (Drop Shadow)
+                            </label>
+                        </div>
                     </section>
                 </aside>
 
@@ -504,8 +523,8 @@ export default function EditorPage() {
                                                     const ms = timeStringToMs(e.target.value);
                                                     if (!isNaN(ms)) updateCaption(i, 'startMs', ms);
                                                 }}
-                                                className="w-16 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-center font-mono"
-                                                placeholder="00:00"
+                                                className="w-20 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-center font-mono"
+                                                placeholder="00:00.00"
                                             />
                                             <input
                                                 type="text"
@@ -514,8 +533,8 @@ export default function EditorPage() {
                                                     const ms = timeStringToMs(e.target.value);
                                                     if (!isNaN(ms)) updateCaption(i, 'endMs', ms);
                                                 }}
-                                                className="w-16 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-center font-mono"
-                                                placeholder="00:00"
+                                                className="w-20 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-center font-mono"
+                                                placeholder="00:00.00"
                                             />
                                         </div>
                                         <input

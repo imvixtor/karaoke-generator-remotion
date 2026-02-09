@@ -11,6 +11,7 @@ function KaraokeSubtitleLine({
     fontSize,
     opacity,
     scale,
+    enableShadow,
 }: {
     caption: KaraokeCaption;
     frameMs: number;
@@ -19,6 +20,7 @@ function KaraokeSubtitleLine({
     fontSize: number;
     opacity: number;
     scale: number;
+    enableShadow: boolean;
 }) {
     const { startMs, endMs, text } = caption;
     const durationMs = endMs - startMs;
@@ -37,7 +39,7 @@ function KaraokeSubtitleLine({
                 fontWeight: 'bold',
                 fontSize: fontSize * scale,
                 lineHeight: 1.4,
-                textShadow: '0 2px 8px rgba(0,0,0,0.9)',
+                textShadow: enableShadow ? '0 2px 8px rgba(0,0,0,0.9)' : undefined,
                 opacity,
                 transform: `scale(${scale})`,
                 willChange: 'opacity, transform, filter',
@@ -94,6 +96,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     sungColor = '#00ff88',
     unsungColor = '#ffffff',
     fontSize = 72,
+    enableShadow = false,
     fps,
 }) => {
     const frame = useCurrentFrame();
@@ -308,6 +311,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                                 fontSize={fontSize}
                                 opacity={opacity}
                                 scale={scale}
+                                enableShadow={enableShadow}
                             />
                         </div>
                     );
