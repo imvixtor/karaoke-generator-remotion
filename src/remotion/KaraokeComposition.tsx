@@ -39,9 +39,9 @@ function KaraokeSubtitleLine({
                 fontWeight: 'bold',
                 fontSize: fontSize * scale,
                 lineHeight: 1.4,
-                textShadow: enableShadow ? '0 3px 16px rgba(0,0,0,0.7)' : undefined,
+                textShadow: enableShadow ? '0 3px 16px rgba(0,0,0,0.85)' : undefined,
                 opacity,
-                transform: `scale(${scale})`,
+                transform: `scale(1)`,
                 willChange: 'opacity, transform, filter',
                 // Blur mờ dần cho các câu phụ sẽ được áp dụng từ bên ngoài qua style.filter
             }}
@@ -95,7 +95,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     backgroundVideoDuration,
     sungColor = '#00ff88',
     unsungColor = '#ffffff',
-    fontSize = 72,
+    fontSize = 65,
     enableShadow = true,
     fps,
 }) => {
@@ -164,7 +164,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     }, [captions, scrollOffsetInLines]);
 
     // Khoảng cách giữa các câu (tính bằng pixel)
-    const lineSpacing = fontSize * 1.8;
+    const lineSpacing = fontSize * 2.2;
 
     // Tính toán video background timing
     const videoStartTime = backgroundVideoStartTime || 0;
@@ -271,16 +271,11 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                         [1, 0.7, 0.4, 0.15],
                         { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
                     );
-                    const scale = interpolate(
-                        absOffset,
-                        [0, 1, 2, 3],
-                        [1, 0.9, 0.75, 0.6],
-                        { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
-                    );
+                    const scale = 1;
                     const blurPx = interpolate(
                         absOffset,
                         [0, 1, 2, 3],
-                        [0, 1.5, 3, 5],
+                        [0, 0, 3, 5],
                         { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
                     );
 

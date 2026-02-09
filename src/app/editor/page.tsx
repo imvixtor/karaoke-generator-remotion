@@ -289,12 +289,21 @@ export default function EditorPage() {
             return;
         }
 
+        // Clone and convert to absolute URLs for renderer
+        const inputProps = { ...playerProps };
+        if (inputProps.audioSrc && inputProps.audioSrc.startsWith('/')) {
+            inputProps.audioSrc = window.location.origin + inputProps.audioSrc;
+        }
+        if (inputProps.backgroundSrc && inputProps.backgroundSrc.startsWith('/')) {
+            inputProps.backgroundSrc = window.location.origin + inputProps.backgroundSrc;
+        }
+
         try {
             setRenderStatus('Đang render...');
             const resp = await fetch('/api/render', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(playerProps),
+                body: JSON.stringify(inputProps),
             });
             if (!resp.ok) {
                 throw new Error(`HTTP ${resp.status}`);
