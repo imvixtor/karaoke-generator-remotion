@@ -35,5 +35,7 @@ export type KaraokeCompositionProps = {
     fontSize?: number;
     /** Bật/tắt đổ bóng chữ */
     enableShadow?: boolean;
+    /** Bật/tắt animation scroll */
+    enableScrollAnimation?: boolean;
     fps: number;
 };

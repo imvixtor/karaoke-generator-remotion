@@ -97,6 +97,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     unsungColor = '#ffffff',
     fontSize = 65,
     enableShadow = true,
+    enableScrollAnimation = false,
     fps,
 }) => {
     const frame = useCurrentFrame();
@@ -134,6 +135,8 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
         const startMs = caption.startMs;
         const frameAtCaptionStart = (startMs / 1000) * fps;
         const framesSinceStart = frame - frameAtCaptionStart;
+
+        if (!enableScrollAnimation) return currentIndex;
 
         // Animation scroll cố định: ~0.5s (15 frame @ 30fps), dùng easing để mượt
         const scrollDurationFrames = Math.max(12, Math.round(0.5 * fps));

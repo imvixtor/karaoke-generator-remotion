@@ -47,6 +47,7 @@ export default function EditorPage() {
     const [unsungColor, setUnsungColor] = useState('#ffffff');
     const [fontSize, setFontSize] = useState(65);
     const [enableShadow, setEnableShadow] = useState(true);
+    const [enableScrollAnimation, setEnableScrollAnimation] = useState(false);
     const [backgroundDim, setBackgroundDim] = useState(0.60);
     const [backgroundBlur, setBackgroundBlur] = useState(30);
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState(0);
@@ -233,6 +234,7 @@ export default function EditorPage() {
             unsungColor,
             fontSize,
             enableShadow,
+            enableScrollAnimation,
             audioUrl,
             backgroundUrl,
         };
@@ -276,6 +278,7 @@ export default function EditorPage() {
         unsungColor,
         fontSize,
         enableShadow,
+        enableScrollAnimation,
         fps: FPS,
     };
 
@@ -489,6 +492,15 @@ export default function EditorPage() {
                                     className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
                                 />
                                 Bật đổ bóng (Drop Shadow)
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                                <input
+                                    type="checkbox"
+                                    checked={enableScrollAnimation}
+                                    onChange={(e) => setEnableScrollAnimation(e.target.checked)}
+                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                />
+                                Bật animation cuộn
                             </label>
                         </div>
                     </section>
