@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { Player } from '@remotion/player';
+import React, { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { CallbackListener, Player, PlayerRef } from '@remotion/player';
 import { KaraokeComposition } from '../../remotion/KaraokeComposition';
 import type { KaraokeCaption, BackgroundType, KaraokeCompositionProps } from '../../types/karaoke';
 import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
@@ -46,6 +46,51 @@ const FPS = 30;
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
+// Hook lấy frame hiện tại của Player, được khuyến nghị trong docs Remotion
+const useCurrentPlayerFrame = (ref: React.RefObject<PlayerRef | null>) => {
+    const subscribe = useCallback(
+        (onStoreChange: () => void) => {
+            const { current } = ref;
+            if (!current) {
+                return () => undefined;
+            }
+
+            const updater: CallbackListener<'frameupdate'> = () => {
+                onStoreChange();
+            };
+
+            current.addEventListener('frameupdate', updater);
+
+            return () => {
+                current.removeEventListener('frameupdate', updater);
+            };
+        },
+        [ref],
+    );
+
+    const frame = useSyncExternalStore<number>(
+        subscribe,
+        () => ref.current?.getCurrentFrame() ?? 0,
+        () => 0,
+    );
+
+    return frame;
+};
+
+const TimeDisplay: React.FC<{
+    playerRef: React.RefObject<PlayerRef | null>;
+    fps: number;
+}> = ({ playerRef, fps }) => {
+    const frame = useCurrentPlayerFrame(playerRef);
+    const ms = (frame / fps) * 1000;
+
+    return (
+        <div className="font-mono text-cyan-400 font-bold bg-zinc-900 px-3 py-1 rounded border border-zinc-700 shadow-inner">
+            {msToTimeString(ms)}
+        </div>
+    );
+};
+
 export default function EditorPage() {
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -70,6 +115,7 @@ export default function EditorPage() {
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [elapsedTime, setElapsedTime] = useState<number>(0); // ms
     const [fontFamily, setFontFamily] = useState('Roboto');
+    const playerRef = useRef<PlayerRef>(null);
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
@@ -767,6 +813,7 @@ export default function EditorPage() {
                         {currentAudioSrc ? (
                             <div className="rounded-xl overflow-hidden border border-zinc-800 bg-black aspect-video shadow-2xl">
                                 <Player
+                                    ref={playerRef}
                                     component={KaraokeComposition}
                                     inputProps={playerProps}
                                     durationInFrames={durationInFrames}
@@ -786,8 +833,18 @@ export default function EditorPage() {
                     </div>
 
                     <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-                        <div className="p-4 border-b border-zinc-800 flex justify-between items-center cursor-pointer bg-zinc-800/50">
+                        <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-800/50">
                             <span className="font-bold text-sm">Chỉnh sửa phụ đề ({captions.length} dòng)</span>
+
+                            {/* Clock Display */}
+                            {currentAudioSrc ? (
+                                <TimeDisplay playerRef={playerRef} fps={FPS} />
+                            ) : (
+                                <div className="font-mono text-cyan-400 font-bold bg-zinc-900 px-3 py-1 rounded border border-zinc-700 shadow-inner">
+                                    00:00.00
+                                </div>
+                            )}
+
                             <div className="flex gap-2">
                                 <button type="button" onClick={handleClearCaptions} className="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-500 rounded text-xs">
                                     Delete all
