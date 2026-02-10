@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, OffthreadVideo, interpolate, Easing, Freeze } from 'remotion';
+import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, interpolate, Easing, Freeze } from 'remotion';
 import type { KaraokeCompositionProps, KaraokeCaption } from '../types/karaoke';
 
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
@@ -172,7 +172,11 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     const videoStartTime = backgroundVideoStartTime || 0;
     const videoDuration = backgroundVideoDuration || 0;
     const videoEndTimeInComposition = videoDuration > 0 ? videoDuration - videoStartTime : 0;
-    const videoEndFrame = videoEndTimeInComposition > 0 ? Math.floor(videoEndTimeInComposition * fps) : Infinity;
+    // Safety buffer: reduce end frame by ~0.5s (15 frames) to avoid requesting the very last frame which might not exist
+    // accurately due to metadata/duration mismatches.
+    const safeZone = 15;
+    const calculatedEndFrame = videoEndTimeInComposition > 0 ? Math.floor(videoEndTimeInComposition * fps) : 0;
+    const videoEndFrame = Math.max(0, calculatedEndFrame - safeZone);
     const audioEndFrame = durationInFrames;
 
     // Tính trimBefore (frames) để bắt đầu video từ điểm chỉ định
@@ -209,10 +213,10 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                 <AbsoluteFill>
                     {freezeFrame !== undefined ? (
                         <Freeze frame={freezeFrame}>
-                            <OffthreadVideo
+                            <Video
                                 src={backgroundSrc}
                                 volume={0}
-                                trimBefore={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
+                                startFrom={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -222,10 +226,10 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                             />
                         </Freeze>
                     ) : (
-                        <OffthreadVideo
+                        <Video
                             src={backgroundSrc}
                             volume={0}
-                            trimBefore={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
+                            startFrom={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
                             style={{
                                 width: '100%',
                                 height: '100%',
