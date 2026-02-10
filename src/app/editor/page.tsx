@@ -116,6 +116,7 @@ export default function EditorPage() {
     const [elapsedTime, setElapsedTime] = useState<number>(0); // ms
     const [fontFamily, setFontFamily] = useState('Roboto');
     const playerRef = useRef<PlayerRef>(null);
+    const saveTimeoutRef = useRef<number | null>(null);
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
@@ -350,10 +351,9 @@ export default function EditorPage() {
         setDraggedIndex(null);
     }, []);
 
-    // Lưu vào localStorage khi có thay đổi (thay vì sessionStorage để persist lâu hơn, hoặc giữ session)
+    // Lưu cấu hình editor vào sessionStorage với debounce để tránh JSON.stringify quá thường xuyên
     useEffect(() => {
         const data = {
-
             captions,
             backgroundType,
             backgroundDim,
@@ -371,7 +371,26 @@ export default function EditorPage() {
             fontFamily,
             videoLoop,
         };
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+        // Debounce: chỉ ghi sau 300ms kể từ thay đổi cuối
+        if (saveTimeoutRef.current !== null) {
+            window.clearTimeout(saveTimeoutRef.current);
+        }
+
+        saveTimeoutRef.current = window.setTimeout(() => {
+            try {
+                sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (err) {
+                // Tránh crash nếu quota đầy hoặc sessionStorage không khả dụng
+                console.warn('Không thể lưu cấu hình editor vào sessionStorage', err);
+            }
+        }, 300);
+
+        return () => {
+            if (saveTimeoutRef.current !== null) {
+                window.clearTimeout(saveTimeoutRef.current);
+            }
+        };
     }, [captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
