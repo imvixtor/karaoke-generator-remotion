@@ -42,4 +42,6 @@ export type KaraokeCompositionProps = {
     fps: number;
     /** Kiểu hiển thị lời bài hát */
     lyricsLayout?: LyricsLayout;
+    /** Font chữ */
+    fontFamily?: string;
 };

@@ -58,6 +58,7 @@ export default function EditorPage() {
     const [renderDuration, setRenderDuration] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [elapsedTime, setElapsedTime] = useState<number>(0); // ms
+    const [fontFamily, setFontFamily] = useState('Roboto');
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
@@ -245,9 +246,10 @@ export default function EditorPage() {
             crf,
             renderSample,
             lyricsLayout,
+            fontFamily,
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout]);
+    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -270,6 +272,7 @@ export default function EditorPage() {
                 if (data.crf) setCrf(data.crf);
                 if (data.renderSample !== undefined) setRenderSample(data.renderSample);
                 if (data.lyricsLayout) setLyricsLayout(data.lyricsLayout);
+                if (data.fontFamily) setFontFamily(data.fontFamily);
             } catch (e) {
                 console.error('Failed to load saved data:', e);
             }
@@ -292,6 +295,7 @@ export default function EditorPage() {
         durationInFrames,
         fps: FPS,
         lyricsLayout,
+        fontFamily,
     };
 
     const [renderProgress, setRenderProgress] = useState<number | null>(null);
@@ -632,6 +636,25 @@ export default function EditorPage() {
                                 className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
                             />
                         </label>
+
+                        <label className="text-xs flex flex-col gap-1 mt-2">
+                            Font chữ
+                            <select
+                                value={fontFamily}
+                                onChange={(e) => setFontFamily(e.target.value)}
+                                className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
+                            >
+                                <option value="Roboto">Roboto (Mặc định)</option>
+                                <option value="Inter Tight">Inter Tight</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Lora">Lora (Serif)</option>
+                                <option value="Montserrat">Montserrat</option>
+                                <option value="Oswald">Oswald</option>
+                                <option value="Playfair Display">Playfair Display (Serif)</option>
+                            </select>
+                        </label>
+
                         <div className="mt-4">
                             <label className="flex items-center gap-2 text-xs mb-2">
                                 <input

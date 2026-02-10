@@ -1,6 +1,30 @@
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze } from 'remotion';
+import { loadFont as loadInterTight } from '@remotion/google-fonts/InterTight';
+import { loadFont as loadRoboto } from '@remotion/google-fonts/Roboto';
+import { loadFont as loadLora } from '@remotion/google-fonts/Lora';
+import { loadFont as loadMontserrat } from '@remotion/google-fonts/Montserrat';
+import { loadFont as loadOswald } from '@remotion/google-fonts/Oswald';
+import { loadFont as loadPlayfairDisplay } from '@remotion/google-fonts/PlayfairDisplay';
 import type { KaraokeCompositionProps, KaraokeCaption } from '../types/karaoke';
+
+const { fontFamily: interTight } = loadInterTight();
+const { fontFamily: roboto } = loadRoboto();
+const { fontFamily: lora } = loadLora();
+const { fontFamily: montserrat } = loadMontserrat();
+const { fontFamily: oswald } = loadOswald();
+const { fontFamily: playfairDisplay } = loadPlayfairDisplay();
+
+const fontMap: Record<string, string> = {
+    'Roboto': roboto,
+    'Inter Tight': interTight,
+    'Lora': lora,
+    'Montserrat': montserrat,
+    'Oswald': oswald,
+    'Playfair Display': playfairDisplay,
+    'Arial': 'Arial, sans-serif',
+    'Times New Roman': '"Times New Roman", Times, serif',
+};
 
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
 function KaraokeSubtitleLine({
@@ -12,6 +36,7 @@ function KaraokeSubtitleLine({
     opacity,
     scale,
     enableShadow,
+    fontFamily,
 }: {
     caption: KaraokeCaption;
     frameMs: number;
@@ -21,6 +46,7 @@ function KaraokeSubtitleLine({
     opacity: number;
     scale: number;
     enableShadow: boolean;
+    fontFamily: string;
 }) {
     const { startMs, endMs, text } = caption;
     const durationMs = endMs - startMs;
@@ -35,7 +61,7 @@ function KaraokeSubtitleLine({
                 padding: '20px 80px',
                 whiteSpace: 'pre-wrap',
                 textAlign: 'center',
-                fontFamily: 'Arial, sans-serif',
+                fontFamily: fontFamily, // Use the passed font family
                 fontWeight: 'bold',
                 fontSize: fontSize * scale,
                 lineHeight: 1.4,
@@ -98,10 +124,14 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     enableShadow = true,
     fps,
     lyricsLayout = 'bottom',
+    fontFamily = 'Roboto', // Default font
 }) => {
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
     const { durationInFrames } = useVideoConfig();
+
+    // Map the font name string to the actual loaded font family value
+    const activeFontFamily = fontMap[fontFamily] || roboto;
 
     // 2. Traditional & Bottom Layouts (Fixed slots)
     // Logic: Slot 1 (Even lines), Slot 2 (Odd lines)
@@ -145,6 +175,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     const renderSlot = (index: number, positionStyle: React.CSSProperties, align: 'left' | 'center' | 'right') => {
         if (index === -1) return null;
         const caption = captions[index];
+        if (!caption) return null;
 
         return (
             <div style={{ ...positionStyle, width: '100%', textAlign: align, padding: '0 80px' }}>
@@ -159,6 +190,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                             opacity={1}
                             scale={1}
                             enableShadow={enableShadow}
+                            fontFamily={activeFontFamily}
                         />
                     </div>
                 </div>
