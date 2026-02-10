@@ -448,16 +448,6 @@ export default function EditorPage() {
                     <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    {downloadUrl && (
-                        <a
-                            href={downloadUrl}
-                            download
-                            target="_blank"
-                            className="px-6 py-3 font-bold rounded-lg shadow-lg transition-all bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/30 flex items-center gap-2"
-                        >
-                            <span>Download Video</span>
-                        </a>
-                    )}
                     <div className="flex flex-col items-end gap-1">
                         {renderProgress !== null && (
                             <div className="flex items-center gap-2">
@@ -479,6 +469,16 @@ export default function EditorPage() {
                             </span>
                         )}
                     </div>
+                    {downloadUrl && (
+                        <a
+                            href={downloadUrl}
+                            download
+                            target="_blank"
+                            className="px-6 py-3 font-bold rounded-lg shadow-lg transition-all bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/30 flex items-center gap-2"
+                        >
+                            <span>Download Video</span>
+                        </a>
+                    )}
                     <button
                         type="button"
                         onClick={renderProgress !== null ? handleCancel : handleRender}
