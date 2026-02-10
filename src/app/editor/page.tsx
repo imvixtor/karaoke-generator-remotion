@@ -93,10 +93,12 @@ const TimeDisplay: React.FC<{
 
 export default function EditorPage() {
     const [audioFile, setAudioFile] = useState<File | null>(null);
+    const [audioFileName, setAudioFileName] = useState<string | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [captions, setCaptions] = useState<KaraokeCaption[]>([]);
     const [backgroundType, setBackgroundType] = useState<BackgroundType>('black');
     const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+    const [backgroundFileName, setBackgroundFileName] = useState<string | null>(null);
     const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
     const [sungColor, setSungColor] = useState('#00ff88');
     const [unsungColor, setUnsungColor] = useState('#ffffff');
@@ -187,10 +189,12 @@ export default function EditorPage() {
         const file = e.target.files?.[0];
         if (!file) {
             setAudioFile(null);
+            setAudioFileName(null);
             setAudioUrl(null);
             return;
         }
         setAudioFile(file);
+        setAudioFileName(file.name);
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -231,10 +235,12 @@ export default function EditorPage() {
         const file = e.target.files?.[0];
         if (!file) {
             setBackgroundFile(null);
+            setBackgroundFileName(null);
             setBackgroundUrl(null);
             return;
         }
         setBackgroundFile(file);
+        setBackgroundFileName(file.name);
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -364,7 +370,9 @@ export default function EditorPage() {
             fontSize,
             enableShadow,
             audioUrl,
+            audioFileName,
             backgroundUrl,
+            backgroundFileName,
             crf,
             renderSample,
             lyricsLayout,
@@ -391,7 +399,7 @@ export default function EditorPage() {
                 window.clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
+    }, [captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, audioFileName, backgroundUrl, backgroundFileName, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -411,6 +419,8 @@ export default function EditorPage() {
                 if (data.enableShadow !== undefined) setEnableShadow(data.enableShadow);
                 if (data.audioUrl) setAudioUrl(data.audioUrl);
                 if (data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
+                if (data.audioFileName) setAudioFileName(data.audioFileName);
+                if (data.backgroundFileName) setBackgroundFileName(data.backgroundFileName);
                 if (data.crf) setCrf(data.crf);
                 if (data.renderSample !== undefined) setRenderSample(data.renderSample);
                 if (data.lyricsLayout) setLyricsLayout(data.lyricsLayout);
@@ -646,7 +656,11 @@ export default function EditorPage() {
                     <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
                         <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Âm thanh</h2>
                         <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-sm bg-zinc-800 p-2 rounded mb-2 border border-zinc-700" />
-                        {audioFile && <p className="text-xs text-zinc-500 truncate">{audioFile.name}</p>}
+                        {(audioFileName || audioFile) && (
+                            <p className="text-xs text-zinc-500 truncate">
+                                {audioFileName ?? audioFile?.name}
+                            </p>
+                        )}
                     </section>
 
 
@@ -670,7 +684,11 @@ export default function EditorPage() {
                                     onChange={handleBackgroundFile}
                                     className="w-full text-sm bg-zinc-800 p-2 rounded border border-zinc-700"
                                 />
-                                {backgroundFile && <p className="text-xs text-zinc-500 truncate">{backgroundFile.name}</p>}
+                                {(backgroundFileName || backgroundFile) && (
+                                    <p className="text-xs text-zinc-500 truncate">
+                                        {backgroundFileName ?? backgroundFile?.name}
+                                    </p>
+                                )}
 
                                 <div>
                                     <div className="flex justify-between text-xs mb-1">
