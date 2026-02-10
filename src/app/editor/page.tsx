@@ -57,6 +57,7 @@ export default function EditorPage() {
     const [renderStartTime, setRenderStartTime] = useState<number | null>(null);
     const [renderDuration, setRenderDuration] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [elapsedTime, setElapsedTime] = useState<number>(0); // ms
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
@@ -303,6 +304,7 @@ export default function EditorPage() {
             setRenderProgress(null);
             setRenderingId(null);
             setRenderStartTime(null);
+            setElapsedTime(0);
         } catch (e) {
             console.error(e);
             setRenderStatus('Lỗi khi hủy render');
@@ -336,6 +338,7 @@ export default function EditorPage() {
             setRenderStatus('Đang render...');
             setRenderProgress(0);
             setRenderStartTime(Date.now());
+            setElapsedTime(0);
             setRenderDuration(null);
             setDownloadUrl(null);
             const resp = await fetch('/api/render', {
@@ -377,7 +380,8 @@ export default function EditorPage() {
 
                                 if (renderStartTime) {
                                     const elapsed = Date.now() - renderStartTime;
-                                    setRenderDuration(`${(elapsed / 1000).toFixed(1)}s`);
+                                    setElapsedTime(elapsed);
+                                    setRenderDuration(msToTimeString(elapsed).split('.')[0]); // format mm:ss
                                 }
                                 setDownloadUrl(progressData.filename);
                                 return;
@@ -413,7 +417,26 @@ export default function EditorPage() {
             setRenderStatus('Render thất bại. Kiểm tra console.');
             setRenderProgress(null);
         }
-    }, [playerProps, currentAudioSrc, captions.length, crf, renderSample]);
+    }, [playerProps, currentAudioSrc, captions.length, crf, renderSample, renderStartTime]);
+
+    // Timer effect
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (renderStartTime && renderProgress !== null) {
+            interval = setInterval(() => {
+                setElapsedTime(Date.now() - renderStartTime);
+            }, 100);
+        }
+        return () => clearInterval(interval);
+    }, [renderStartTime, renderProgress]);
+
+    // Format helper for timer (mm:ss)
+    const formatTimer = (ms: number) => {
+        const seconds = Math.floor(ms / 1000);
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans">
@@ -425,11 +448,6 @@ export default function EditorPage() {
                     <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    {renderDuration && (
-                        <span className="text-sm font-mono text-zinc-400">
-                            Thời gian: <span className="text-white">{renderDuration}</span>
-                        </span>
-                    )}
                     {downloadUrl && (
                         <a
                             href={downloadUrl}
@@ -440,20 +458,27 @@ export default function EditorPage() {
                             <span>Download Video</span>
                         </a>
                     )}
-                    {renderProgress !== null && (
-                        <div className="flex items-center gap-2">
-                            <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-cyan-500 to-green-500 transition-all duration-300"
-                                    style={{ width: `${renderProgress}%` }}
-                                />
+                    <div className="flex flex-col items-end gap-1">
+                        {renderProgress !== null && (
+                            <div className="flex items-center gap-2">
+                                <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-cyan-500 to-green-500 transition-all duration-300"
+                                        style={{ width: `${renderProgress}%` }}
+                                    />
+                                </div>
+                                <span className="text-xs font-mono text-cyan-400">{renderProgress}%</span>
                             </div>
-                            <span className="text-xs font-mono text-cyan-400">{renderProgress}%</span>
-                        </div>
-                    )}
-                    {renderStatus && renderProgress === null && (
-                        <span className="text-sm font-mono text-cyan-400">{renderStatus}</span>
-                    )}
+                        )}
+                        {renderStatus && renderProgress === null && (
+                            <span className="text-sm font-mono text-cyan-400">{renderStatus}</span>
+                        )}
+                        {(renderStartTime || renderDuration) && (
+                            <span className="text-xs font-mono text-zinc-500">
+                                {renderProgress !== null ? formatTimer(elapsedTime) : `Thời gian: ${renderDuration}`}
+                            </span>
+                        )}
+                    </div>
                     <button
                         type="button"
                         onClick={renderProgress !== null ? handleCancel : handleRender}
