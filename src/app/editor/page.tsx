@@ -31,6 +31,17 @@ function timeStringToMs(timeStr: string): number {
     return Math.round((minutes * 60 + secondsFloat) * 1000);
 }
 
+// Helper: Chuyển ms sang SRT format (HH:MM:SS,ms)
+function formatSrtTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = ms % 1000;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+}
+
 const FPS = 30;
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -38,7 +49,6 @@ const HEIGHT = 1080;
 export default function EditorPage() {
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
-    const [srtContent, setSrtContent] = useState('');
     const [captions, setCaptions] = useState<KaraokeCaption[]>([]);
     const [backgroundType, setBackgroundType] = useState<BackgroundType>('black');
     const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
@@ -98,7 +108,6 @@ export default function EditorPage() {
         const reader = new FileReader();
         reader.onload = () => {
             const text = String(reader.result);
-            setSrtContent(text);
             const lower = file.name.toLowerCase();
             if (lower.endsWith('.ass')) {
                 setCaptions(parseAssContent(text));
@@ -109,16 +118,7 @@ export default function EditorPage() {
         reader.readAsText(file, 'utf-8');
     }, []);
 
-    const handlePasteSrt = useCallback(() => {
-        if (!srtContent.trim()) return;
-        const txt = srtContent;
-        // Nếu có [Script Info] hoặc [Events], coi là ASS
-        if (/\[Events]/i.test(txt) || /\[Script Info]/i.test(txt)) {
-            setCaptions(parseAssContent(txt));
-        } else {
-            setCaptions(parseSrtContent(txt));
-        }
-    }, [srtContent]);
+
 
     const handleBackgroundFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -143,6 +143,36 @@ export default function EditorPage() {
         } catch (err) {
             console.error('Upload background failed', err);
             setRenderStatus('Upload background thất bại.');
+        }
+    }, []);
+
+    const handleExportSrt = useCallback(() => {
+        if (captions.length === 0) {
+            alert('Chưa có phụ đề để xuất.');
+            return;
+        }
+
+        let content = '';
+        captions.forEach((cap, index) => {
+            content += `${index + 1}\n`;
+            content += `${formatSrtTime(cap.startMs)} --> ${formatSrtTime(cap.endMs)}\n`;
+            content += `${cap.text}\n\n`;
+        });
+
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'subtitles.srt';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [captions]);
+
+    const handleClearCaptions = useCallback(() => {
+        if (window.confirm('Bạn có chắc chắn muốn xóa hết phụ đề không?')) {
+            setCaptions([]);
         }
     }, []);
 
@@ -187,21 +217,6 @@ export default function EditorPage() {
         }
     }, [captions, audioDurationSec]);
 
-    const addCaptionAtStart = useCallback(() => {
-        const newStart = 0;
-        const newEnd = 3000;
-        setCaptions((prev) => [
-            {
-                text: 'Phụ đề mới',
-                startMs: newStart,
-                endMs: newEnd,
-                timestampMs: (newStart + newEnd) / 2,
-                confidence: 1,
-            },
-            ...prev,
-        ]);
-    }, []);
-
     const deleteCaption = useCallback((index: number) => {
         setCaptions((prev) => prev.filter((_, i) => i !== index));
     }, []);
@@ -232,7 +247,7 @@ export default function EditorPage() {
     // Lưu vào localStorage khi có thay đổi (thay vì sessionStorage để persist lâu hơn, hoặc giữ session)
     useEffect(() => {
         const data = {
-            srtContent,
+
             captions,
             backgroundType,
             backgroundDim,
@@ -251,7 +266,7 @@ export default function EditorPage() {
             videoLoop,
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
+    }, [captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -259,7 +274,7 @@ export default function EditorPage() {
         if (saved) {
             try {
                 const data = JSON.parse(saved);
-                if (data.srtContent) setSrtContent(data.srtContent);
+
                 if (data.captions) setCaptions(data.captions);
                 if (data.backgroundType) setBackgroundType(data.backgroundType);
                 if (data.backgroundDim !== undefined) setBackgroundDim(data.backgroundDim);
@@ -509,20 +524,7 @@ export default function EditorPage() {
                         {audioFile && <p className="text-xs text-zinc-500 truncate">{audioFile.name}</p>}
                     </section>
 
-                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Phụ đề (SRT / ASS)</h2>
-                        <input type="file" accept=".srt,.ass,text/plain" onChange={handleSrtFile} className="w-full text-sm bg-zinc-800 p-2 rounded mb-2 border border-zinc-700" />
-                        <textarea
-                            placeholder="Dán nội dung SRT hoặc chọn file..."
-                            value={srtContent}
-                            onChange={(e) => setSrtContent(e.target.value)}
-                            className="w-full h-24 bg-zinc-800 p-2 rounded mb-2 border border-zinc-700 text-xs font-mono"
-                        />
-                        <button type="button" onClick={handlePasteSrt} className="w-full py-2 bg-green-500 hover:bg-green-600 text-zinc-950 font-bold rounded text-sm transition-colors">
-                            Áp dụng SRT
-                        </button>
-                        <p className="text-xs text-zinc-500 mt-2">{captions.length} dòng phụ đề</p>
-                    </section>
+
 
                     <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
                         <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Nền</h2>
@@ -626,7 +628,7 @@ export default function EditorPage() {
                     </section>
 
                     <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Màu sắc UI</h2>
+                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Phụ đề</h2>
                         <div className="flex items-center gap-4 mb-2">
                             <label className="text-xs flex items-center gap-2">
                                 Màu đã hát
@@ -787,18 +789,22 @@ export default function EditorPage() {
                         <div className="p-4 border-b border-zinc-800 flex justify-between items-center cursor-pointer bg-zinc-800/50">
                             <span className="font-bold text-sm">Chỉnh sửa phụ đề ({captions.length} dòng)</span>
                             <div className="flex gap-2">
-                                <button type="button" onClick={addCaptionAtStart} className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-xs">
-                                    + Đầu
+                                <button type="button" onClick={handleClearCaptions} className="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-500 rounded text-xs">
+                                    Delete all
                                 </button>
-                                <button type="button" onClick={() => addCaption()} className="px-3 py-1 bg-green-500 hover:bg-green-600 text-black font-bold rounded text-xs">
-                                    + Cuối
+                                <button type="button" onClick={handleExportSrt} className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-xs">
+                                    Export SRT
                                 </button>
+                                <label className="cursor-pointer px-3 py-1 bg-green-500 hover:bg-green-600 text-black font-bold rounded text-xs flex items-center gap-1">
+                                    <span>Import SRT</span>
+                                    <input type="file" accept=".srt,.ass,text/plain" onChange={handleSrtFile} className="hidden" />
+                                </label>
                             </div>
                         </div>
 
                         <div className="max-h-[500px] overflow-y-auto p-2 space-y-2 scroller">
                             {captions.length === 0 ? (
-                                <p className="text-center text-zinc-500 py-8 text-sm">Chưa có phụ đề.</p>
+                                <p className="text-center text-zinc-500 py-8 text-sm">Chưa có phụ đề. Thêm dòng mới hoặc Import file.</p>
                             ) : (
                                 captions.map((c, i) => (
                                     <div
@@ -850,8 +856,8 @@ export default function EditorPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => deleteCaption(i)}
-                                                className="w-6 h-6 flex items-center justify-center bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded text-xs"
-                                                title="Xóa"
+                                                className="w-6 h-6 flex items-center justify-center bg-red-900/50 hover:bg-red-900 text-red-500 rounded text-xs"
+                                                title="Xóa dòng"
                                             >
                                                 ×
                                             </button>
@@ -859,12 +865,19 @@ export default function EditorPage() {
                                     </div>
                                 ))
                             )}
+                            <button
+                                type="button"
+                                onClick={() => addCaption()}
+                                className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded text-sm text-zinc-400 flex items-center justify-center gap-2 mt-2"
+                            >
+                                <span>+ Thêm dòng phụ đề</span>
+                            </button>
                         </div>
                     </div>
 
                     {/* Render section moved to header */}
-                </div>
-            </div>
+                </div >
+            </div >
         </div >
     );
 }
