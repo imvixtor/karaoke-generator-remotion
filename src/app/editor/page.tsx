@@ -337,7 +337,8 @@ export default function EditorPage() {
         try {
             setRenderStatus('Đang render...');
             setRenderProgress(0);
-            setRenderStartTime(Date.now());
+            const startTime = Date.now();
+            setRenderStartTime(startTime);
             setElapsedTime(0);
             setRenderDuration(null);
             setDownloadUrl(null);
@@ -361,9 +362,6 @@ export default function EditorPage() {
                         const progressResp = await fetch(`/api/render?id=${json.renderId}`);
                         if (progressResp.ok) {
                             const progressData = await progressResp.json();
-                            // If user already cancelled (renderingId is null), stop polling
-                            // But we can't easily access latest state in closure.
-                            // We rely on backend status 'cancelled' or we check if we encounter 404
 
                             if (progressData.status === 'cancelled') {
                                 setRenderStatus('Đã hủy render');
@@ -378,11 +376,9 @@ export default function EditorPage() {
                                 setRenderProgress(null);
                                 setRenderingId(null);
 
-                                if (renderStartTime) {
-                                    const elapsed = Date.now() - renderStartTime;
-                                    setElapsedTime(elapsed);
-                                    setRenderDuration(msToTimeString(elapsed).split('.')[0]); // format mm:ss
-                                }
+                                const elapsed = Date.now() - startTime;
+                                setElapsedTime(elapsed);
+                                setRenderDuration(msToTimeString(elapsed).split('.')[0]); // format mm:ss
                                 setDownloadUrl(progressData.filename);
                                 return;
                             } else if (progressData.status === 'error') {
@@ -417,15 +413,18 @@ export default function EditorPage() {
             setRenderStatus('Render thất bại. Kiểm tra console.');
             setRenderProgress(null);
         }
-    }, [playerProps, currentAudioSrc, captions.length, crf, renderSample, renderStartTime]);
+    }, [playerProps, currentAudioSrc, captions.length, crf, renderSample]);
 
     // Timer effect
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (renderStartTime && renderProgress !== null) {
+            // Update elapsed time every 100ms
             interval = setInterval(() => {
                 setElapsedTime(Date.now() - renderStartTime);
             }, 100);
+        } else if (!renderStartTime) {
+            setElapsedTime(0);
         }
         return () => clearInterval(interval);
     }, [renderStartTime, renderProgress]);

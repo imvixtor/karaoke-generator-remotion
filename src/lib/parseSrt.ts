@@ -101,7 +101,7 @@ export function parseAssContent(input: string): ParsedCaption[] {
         }
 
         // Text hiển thị: bỏ override tags
-        let plainText = rawText.replace(/\{\\.*?}/g, '').trim();
+        const plainText = rawText.replace(/\{\\.*?}/g, '').trim();
         if (!plainText) continue;
 
         captions.push({
