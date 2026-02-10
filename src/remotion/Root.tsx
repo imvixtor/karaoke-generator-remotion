@@ -37,7 +37,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="KaraokeVideo"
         component={KaraokeComposition}
-        durationInFrames={30 * 30} // Default duration, will be dynamic
+        durationInFrames={30 * 30} // Default, will be overridden by calculateMetadata
         fps={30}
         width={1920}
         height={1080}
@@ -46,6 +46,12 @@ export const RemotionRoot: React.FC = () => {
           captions: [],
           backgroundType: "black",
           fps: 30,
+          durationInFrames: 30 * 30,
+        }}
+        calculateMetadata={({ props }) => {
+          // Use durationInFrames from props if provided
+          const duration = props.durationInFrames || 30 * 30;
+          return { durationInFrames: duration };
         }}
       />
     </>

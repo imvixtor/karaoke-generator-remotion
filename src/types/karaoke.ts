@@ -37,5 +37,7 @@ export type KaraokeCompositionProps = {
     enableShadow?: boolean;
     /** Bật/tắt animation scroll */
     enableScrollAnimation?: boolean;
+    /** Độ dài video (frames) */
+    durationInFrames?: number;
     fps: number;
 };

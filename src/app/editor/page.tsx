@@ -279,8 +279,11 @@ export default function EditorPage() {
         fontSize,
         enableShadow,
         enableScrollAnimation,
+        durationInFrames,
         fps: FPS,
     };
+
+    const [renderProgress, setRenderProgress] = useState<number | null>(null);
 
     const handleRender = useCallback(async () => {
         if (!currentAudioSrc) {
@@ -303,6 +306,7 @@ export default function EditorPage() {
 
         try {
             setRenderStatus('Đang render...');
+            setRenderProgress(0);
             const resp = await fetch('/api/render', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -312,16 +316,43 @@ export default function EditorPage() {
                 throw new Error(`HTTP ${resp.status}`);
             }
             const json = await resp.json();
-            if (json.success) {
+            if (json.renderId) {
+                // Poll for progress
+                const pollProgress = async () => {
+                    try {
+                        const progressResp = await fetch(`/api/render?id=${json.renderId}`);
+                        if (progressResp.ok) {
+                            const progressData = await progressResp.json();
+                            setRenderProgress(progressData.progress);
+                            if (progressData.status === 'done') {
+                                setRenderStatus(`Render xong: ${progressData.filename}`);
+                                setRenderProgress(null);
+                                return;
+                            } else if (progressData.status === 'error') {
+                                setRenderStatus(`Render thất bại: ${progressData.error}`);
+                                setRenderProgress(null);
+                                return;
+                            }
+                        }
+                        setTimeout(pollProgress, 1000);
+                    } catch {
+                        setTimeout(pollProgress, 1000);
+                    }
+                };
+                pollProgress();
+            } else if (json.success) {
                 setRenderStatus(`Render xong: ${json.filename}`);
+                setRenderProgress(null);
             } else {
                 setRenderStatus(`Render thất bại: ${json.error}`);
+                setRenderProgress(null);
             }
         } catch (e) {
             console.error(e);
             setRenderStatus('Render thất bại. Kiểm tra console.');
+            setRenderProgress(null);
         }
-    }, [playerProps]);
+    }, [playerProps, currentAudioSrc, captions.length]);
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans">
@@ -332,14 +363,31 @@ export default function EditorPage() {
                     </h1>
                     <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                    {renderStatus && <span className="text-sm font-mono text-cyan-400 animate-pulse">{renderStatus}</span>}
+                <div className="flex items-center gap-4">
+                    {renderProgress !== null && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-cyan-500 to-green-500 transition-all duration-300"
+                                    style={{ width: `${renderProgress}%` }}
+                                />
+                            </div>
+                            <span className="text-xs font-mono text-cyan-400">{renderProgress}%</span>
+                        </div>
+                    )}
+                    {renderStatus && renderProgress === null && (
+                        <span className="text-sm font-mono text-cyan-400">{renderStatus}</span>
+                    )}
                     <button
                         type="button"
                         onClick={handleRender}
-                        className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black font-bold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                        disabled={renderProgress !== null}
+                        className={`px-6 py-3 font-bold rounded-lg shadow-lg transition-all ${renderProgress !== null
+                                ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black hover:shadow-xl'
+                            }`}
                     >
-                        Render Video
+                        {renderProgress !== null ? 'Đang render...' : 'Render Video'}
                     </button>
                 </div>
             </header>
