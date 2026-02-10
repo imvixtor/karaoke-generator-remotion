@@ -14,6 +14,8 @@ export type KaraokeCaption = {
 
 export type BackgroundType = 'black' | 'image' | 'video';
 
+export type LyricsLayout = 'traditional' | 'bottom';
+
 export type KaraokeCompositionProps = {
     audioSrc: string;
     captions: KaraokeCaption[];
@@ -35,9 +37,9 @@ export type KaraokeCompositionProps = {
     fontSize?: number;
     /** Bật/tắt đổ bóng chữ */
     enableShadow?: boolean;
-    /** Bật/tắt animation scroll */
-    enableScrollAnimation?: boolean;
     /** Độ dài video (frames) */
     durationInFrames?: number;
     fps: number;
+    /** Kiểu hiển thị lời bài hát */
+    lyricsLayout?: LyricsLayout;
 };

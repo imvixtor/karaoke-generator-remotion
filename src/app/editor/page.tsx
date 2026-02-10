@@ -47,13 +47,13 @@ export default function EditorPage() {
     const [unsungColor, setUnsungColor] = useState('#ffffff');
     const [fontSize, setFontSize] = useState(65);
     const [enableShadow, setEnableShadow] = useState(true);
-    const [enableScrollAnimation, setEnableScrollAnimation] = useState(false);
     const [backgroundDim, setBackgroundDim] = useState(0.30);
     const [backgroundBlur, setBackgroundBlur] = useState(0);
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState(0);
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
     const [crf, setCrf] = useState(25);
     const [renderSample, setRenderSample] = useState(false);
+    const [lyricsLayout, setLyricsLayout] = useState<'traditional' | 'bottom'>('bottom');
     const [renderStartTime, setRenderStartTime] = useState<number | null>(null);
     const [renderDuration, setRenderDuration] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
@@ -240,14 +240,14 @@ export default function EditorPage() {
             unsungColor,
             fontSize,
             enableShadow,
-            enableScrollAnimation,
             audioUrl,
             backgroundUrl,
             crf,
             renderSample,
+            lyricsLayout,
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample]);
+    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -269,6 +269,7 @@ export default function EditorPage() {
                 if (data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
                 if (data.crf) setCrf(data.crf);
                 if (data.renderSample !== undefined) setRenderSample(data.renderSample);
+                if (data.lyricsLayout) setLyricsLayout(data.lyricsLayout);
             } catch (e) {
                 console.error('Failed to load saved data:', e);
             }
@@ -288,9 +289,9 @@ export default function EditorPage() {
         unsungColor,
         fontSize,
         enableShadow,
-        enableScrollAnimation,
         durationInFrames,
         fps: FPS,
+        lyricsLayout,
     };
 
     const [renderProgress, setRenderProgress] = useState<number | null>(null);
@@ -641,15 +642,34 @@ export default function EditorPage() {
                                 />
                                 Bật đổ bóng (Drop Shadow)
                             </label>
-                            <label className="flex items-center gap-2 text-xs">
-                                <input
-                                    type="checkbox"
-                                    checked={enableScrollAnimation}
-                                    onChange={(e) => setEnableScrollAnimation(e.target.checked)}
-                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
-                                />
-                                Bật animation cuộn
-                            </label>
+                        </div>
+
+                        <div className="mt-4 border-t border-zinc-800 pt-4">
+                            <h3 className="text-xs font-bold text-zinc-500 mb-2 uppercase">Bố cục lời</h3>
+                            <div className="flex flex-col gap-2">
+                                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="lyricsLayout"
+                                        value="traditional"
+                                        checked={lyricsLayout === 'traditional'}
+                                        onChange={() => setLyricsLayout('traditional')}
+                                        className="accent-green-500"
+                                    />
+                                    Truyền thống (Trái/Phải - Dưới)
+                                </label>
+                                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="lyricsLayout"
+                                        value="bottom"
+                                        checked={lyricsLayout === 'bottom'}
+                                        onChange={() => setLyricsLayout('bottom')}
+                                        className="accent-green-500"
+                                    />
+                                    Căn dưới (Giữa)
+                                </label>
+                            </div>
                         </div>
                     </section>
 
@@ -794,6 +814,6 @@ export default function EditorPage() {
                     {/* Render section moved to header */}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

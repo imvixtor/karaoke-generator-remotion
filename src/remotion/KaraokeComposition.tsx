@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, interpolate, Easing, Freeze } from 'remotion';
+import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze } from 'remotion';
 import type { KaraokeCompositionProps, KaraokeCaption } from '../types/karaoke';
 
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
@@ -96,84 +96,82 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     unsungColor = '#ffffff',
     fontSize = 65,
     enableShadow = true,
-    enableScrollAnimation = false,
     fps,
+    lyricsLayout = 'bottom',
 }) => {
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
-    const { height, durationInFrames } = useVideoConfig();
+    const { durationInFrames } = useVideoConfig();
 
-    // Tìm index của câu hiện tại
-    const currentIndex = useMemo(() => {
-        return captions.findIndex((c) => frameMs >= c.startMs && frameMs <= c.endMs);
-    }, [captions, frameMs]);
+    // 2. Traditional & Bottom Layouts (Fixed slots)
+    // Logic: Slot 1 (Even lines), Slot 2 (Odd lines)
+    // Lookahead: 2 seconds
+    const lookaheadMs = 2000;
 
-    // Scroll offset mượt (đơn vị: số dòng):
-    // - Khi ở khoảng trống giữa 2 câu: giữ nguyên vị trí câu vừa xong (không nhảy đầu/cuối).
-    // - Khi vào câu mới: animate scroll trong một khoảng thời gian cố định (số frame) để mượt.
-    const scrollOffsetInLines = useMemo(() => {
-        if (captions.length === 0) return 0;
-
-        const firstStart = captions[0]?.startMs ?? 0;
-        const lastEnd = captions[captions.length - 1]?.endMs ?? 0;
-
-        if (currentIndex === -1) {
-            if (frameMs < firstStart) return 0;
-            if (frameMs > lastEnd) return captions.length - 1;
-            // Đang ở khoảng trống giữa hai câu: giữ ở câu vừa kết thúc (câu có endMs <= frameMs gần nhất)
-            let lastEndedIndex = 0;
-            for (let i = 0; i < captions.length; i++) {
-                if (captions[i].endMs <= frameMs) lastEndedIndex = i;
+    // Find active captions for each slot
+    // "Active" means it's the latest line for that slot that has started (or is about to start)
+    const findActiveIndex = (mod: number) => {
+        let found = -1;
+        for (let i = 0; i < captions.length; i++) {
+            if (i % 2 === mod) {
+                if (captions[i].startMs <= frameMs + lookaheadMs) {
+                    found = i;
+                }
             }
-            return lastEndedIndex;
         }
+        return found;
+    };
 
-        if (currentIndex === 0) return 0;
+    const evenIndex = findActiveIndex(0);
+    const oddIndex = findActiveIndex(1);
 
-        const caption = captions[currentIndex];
-        const startMs = caption.startMs;
-        const frameAtCaptionStart = (startMs / 1000) * fps;
-        const framesSinceStart = frame - frameAtCaptionStart;
+    const renderSlot = (index: number, positionStyle: React.CSSProperties, align: 'left' | 'center' | 'right') => {
+        if (index === -1) return null;
+        const caption = captions[index];
 
-        if (!enableScrollAnimation) return currentIndex;
-
-        // Animation scroll cố định: ~0.5s (15 frame @ 30fps), dùng easing để mượt
-        const scrollDurationFrames = Math.max(12, Math.round(0.5 * fps));
-        const scrollProgress = interpolate(
-            framesSinceStart,
-            [0, scrollDurationFrames],
-            [0, 1],
-            {
-                extrapolateRight: 'clamp',
-                extrapolateLeft: 'clamp',
-                easing: Easing.out(Easing.cubic),
-            }
+        return (
+            <div style={{ ...positionStyle, width: '100%', textAlign: align, padding: '0 80px' }}>
+                <div style={{ display: align === 'center' ? 'flex' : 'block', justifyContent: 'center' }}>
+                    <div style={{ display: 'inline-block', textAlign: 'center' }}>
+                        <KaraokeSubtitleLine
+                            caption={caption}
+                            frameMs={frameMs}
+                            sungColor={sungColor}
+                            unsungColor={unsungColor}
+                            fontSize={fontSize}
+                            opacity={1}
+                            scale={1}
+                            enableShadow={enableShadow}
+                        />
+                    </div>
+                </div>
+            </div>
         );
+    };
 
-        return currentIndex - 1 + scrollProgress;
-    }, [captions, currentIndex, frameMs, frame, fps]);
+    const isTraditional = lyricsLayout === 'traditional';
 
-    // Hiển thị chỉ 5 câu gần câu hiện tại nhất (2 câu trước, câu hiện tại, 2 câu sau)
-    const visibleCaptions = useMemo(() => {
-        const centerIndex = Math.round(scrollOffsetInLines);
-        const startIndex = Math.max(0, centerIndex - 2);
-        const endIndex = Math.min(captions.length, centerIndex + 3);
+    // Configuration for slots
+    // Traditional: Slot 1 (Left/Higher), Slot 2 (Right/Lower)
+    const slot1Style: React.CSSProperties = {
+        position: 'absolute',
+        bottom: isTraditional ? '180px' : '180px', // Top slot (Even lines)
+        left: 0,
+    };
+    const slot2Style: React.CSSProperties = {
+        position: 'absolute',
+        bottom: '60px', // Bottom slot (Odd lines)
+        left: 0,
+    };
 
-        return captions.slice(startIndex, endIndex).map((c, i) => ({
-            caption: c,
-            offset: (startIndex + i) - scrollOffsetInLines,
-        }));
-    }, [captions, scrollOffsetInLines]);
-
-    // Khoảng cách giữa các câu (tính bằng pixel)
-    const lineSpacing = fontSize * 2.2;
+    // Alignments
+    const align1 = isTraditional ? 'left' : 'center'; // Even lines (0, 2...)
+    const align2 = isTraditional ? 'right' : 'center'; // Odd lines (1, 3...)
 
     // Tính toán video background timing
     const videoStartTime = backgroundVideoStartTime || 0;
     const videoDuration = backgroundVideoDuration || 0;
     const videoEndTimeInComposition = videoDuration > 0 ? videoDuration - videoStartTime : 0;
-    // Safety buffer: reduce end frame by ~0.5s (15 frames) to avoid requesting the very last frame which might not exist
-    // accurately due to metadata/duration mismatches.
     const safeZone = 15;
     const calculatedEndFrame = videoEndTimeInComposition > 0 ? Math.floor(videoEndTimeInComposition * fps) : 0;
     const videoEndFrame = Math.max(0, calculatedEndFrame - safeZone);
@@ -183,13 +181,11 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     const trimBeforeFrames = Math.floor(videoStartTime * fps);
 
     // Kiểm tra các trường hợp:
-    // - Video kết thúc trước audio: freeze frame cuối của video
-    // - Audio kết thúc trước video: hiển thị overlay mờ sau khi hết audio
     const isVideoEnded = videoDuration > 0 && frame >= videoEndFrame;
     const isAudioEnded = frame >= audioEndFrame;
     const shouldShowDimOverlay = isAudioEnded && !isVideoEnded && backgroundType === 'video';
 
-    // Frame để freeze: frame cuối của video trong composition (tương đương với frame cuối của video gốc)
+    // Frame để freeze: frame cuối của video trong composition
     const freezeFrame = isVideoEnded && videoEndFrame > 0 ? videoEndFrame - 1 : undefined;
 
     return (
@@ -241,7 +237,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                 </AbsoluteFill>
             )}
 
-            {/* Lớp làm mờ nền (chỉ khi dùng image/video, 0 = tối, 1 = không mờ) */}
+            {/* Lớp làm mờ nền */}
             {(backgroundType === 'image' || backgroundType === 'video') && (
                 <AbsoluteFill
                     style={{
@@ -255,61 +251,13 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
             {/* Audio */}
             {audioSrc && <Audio src={audioSrc} />}
 
-            {/* Scrollable Karaoke lyrics container */}
-            <AbsoluteFill
-                style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    overflow: 'hidden',
-                }}
-            >
-                {visibleCaptions.map(({ caption, offset }, idx) => {
-                    // Tính opacity và scale dựa trên offset từ câu hiện tại
-                    // offset = 0: câu hiện tại (opacity 1, scale 1)
-                    // offset = ±1: câu gần (opacity 0.7, scale 0.9)
-                    // offset = ±2: câu xa hơn (opacity 0.4, scale 0.75)
-                    // offset > ±2: câu rất xa (opacity 0.15, scale 0.6)
-                    const absOffset = Math.abs(offset);
-                    const opacity = interpolate(
-                        absOffset,
-                        [0, 1, 2, 3],
-                        [1, 0.7, 0.3, 0.1],
-                        { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
-                    );
-                    const scale = 1;
+            {/* Lyrics Layer - Simplified for Traditional/Bottom only */}
+            <AbsoluteFill>
+                {/* Even Slot (Line 0, 2, 4...) */}
+                {renderSlot(evenIndex, slot1Style, align1)}
 
-                    // Chỉ render những câu có opacity > 0.1 để tối ưu hiệu suất
-                    if (opacity < 0.1) return null;
-
-                    // Vị trí Y: câu hiện tại ở giữa (50%), các câu khác offset theo lineSpacing
-                    const yPosition = height / 2 + offset * lineSpacing;
-
-                    return (
-                        <div
-                            key={`${caption.startMs}-${idx}`}
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                right: 0,
-                                top: yPosition,
-                                transform: 'translateY(-50%)',
-                                width: '100%',
-                            }}
-                        >
-                            <KaraokeSubtitleLine
-                                caption={caption}
-                                frameMs={frameMs}
-                                sungColor={sungColor}
-                                unsungColor={unsungColor}
-                                fontSize={fontSize}
-                                opacity={opacity}
-                                scale={scale}
-                                enableShadow={enableShadow}
-                            />
-                        </div>
-                    );
-                })}
+                {/* Odd Slot (Line 1, 3, 5...) */}
+                {renderSlot(oddIndex, slot2Style, align2)}
             </AbsoluteFill>
         </AbsoluteFill>
     );
