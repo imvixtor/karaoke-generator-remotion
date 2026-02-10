@@ -873,6 +873,7 @@ export default function EditorPage() {
                         {currentAudioSrc ? (
                             <div className="rounded-xl overflow-hidden border border-zinc-800 bg-black aspect-video shadow-2xl">
                                 <Player
+                                    acknowledgeRemotionLicense
                                     ref={playerRef}
                                     component={KaraokeComposition}
                                     inputProps={playerProps}
