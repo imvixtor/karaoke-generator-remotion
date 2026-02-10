@@ -58,6 +58,7 @@
     "lint": "eslint .",
     "remotion": "remotion studio",
     "render": "remotion render",
-    "deploy": "node deploy.mjs"
+    "deploy": "node deploy.mjs",
+    "clean": "node scripts/cleanup-uploads.mjs"
   }
 }
