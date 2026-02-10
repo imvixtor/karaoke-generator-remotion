@@ -44,4 +44,5 @@ export type KaraokeCompositionProps = {
     lyricsLayout?: LyricsLayout;
     /** Font chữ */
     fontFamily?: string;
+    videoLoop?: boolean; // Tùy chọn lặp lại video nền
 };

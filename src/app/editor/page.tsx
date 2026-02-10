@@ -46,10 +46,11 @@ export default function EditorPage() {
     const [sungColor, setSungColor] = useState('#00ff88');
     const [unsungColor, setUnsungColor] = useState('#ffffff');
     const [fontSize, setFontSize] = useState<number | string>(65);
-    const [enableShadow, setEnableShadow] = useState(true);
+    const [enableShadow, setEnableShadow] = useState(false); // Default false
     const [backgroundDim, setBackgroundDim] = useState(0.30);
     const [backgroundBlur, setBackgroundBlur] = useState(0);
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
+    const [videoLoop, setVideoLoop] = useState(false); // New Loop option
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
     const [crf, setCrf] = useState(25);
     const [renderSample, setRenderSample] = useState(false);
@@ -247,9 +248,10 @@ export default function EditorPage() {
             renderSample,
             lyricsLayout,
             fontFamily,
+            videoLoop,
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily]);
+    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -273,6 +275,7 @@ export default function EditorPage() {
                 if (data.renderSample !== undefined) setRenderSample(data.renderSample);
                 if (data.lyricsLayout) setLyricsLayout(data.lyricsLayout);
                 if (data.fontFamily) setFontFamily(data.fontFamily);
+                if (data.videoLoop !== undefined) setVideoLoop(data.videoLoop);
             } catch (e) {
                 console.error('Failed to load saved data:', e);
             }
@@ -296,6 +299,7 @@ export default function EditorPage() {
         fps: FPS,
         lyricsLayout,
         fontFamily,
+        videoLoop,
     };
 
     const [renderProgress, setRenderProgress] = useState<number | null>(null);
@@ -599,11 +603,22 @@ export default function EditorPage() {
                                             />
                                         </div>
                                         {videoDurationSec && (
-                                            <p className="text-xs text-zinc-500">
+                                            <p className="text-xs text-zinc-500 mt-1">
                                                 Video: {videoDurationSec.toFixed(1)}s |
                                                 Audio: {audioDurationSec?.toFixed(1) ?? '?'}s
                                             </p>
                                         )}
+                                        <div className="mt-2">
+                                            <label className="flex items-center gap-2 text-xs">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={videoLoop}
+                                                    onChange={(e) => setVideoLoop(e.target.checked)}
+                                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                                />
+                                                Lặp lại video (Loop)
+                                            </label>
+                                        </div>
                                     </>
                                 )}
                             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze } from 'remotion';
+import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze, Loop } from 'remotion';
 import { loadFont as loadInterTight } from '@remotion/google-fonts/InterTight';
 import { loadFont as loadRoboto } from '@remotion/google-fonts/Roboto';
 import { loadFont as loadLora } from '@remotion/google-fonts/Lora';
@@ -121,10 +121,11 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     sungColor = '#00ff88',
     unsungColor = '#ffffff',
     fontSize = 65,
-    enableShadow = true,
+    enableShadow = false, // Default changed to false
     fps,
     lyricsLayout = 'traditional',
     fontFamily = 'Roboto', // Default font
+    videoLoop = false,
 }) => {
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
@@ -230,22 +231,33 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     // Tính toán video background timing
     const videoStartTime = backgroundVideoStartTime || 0;
     const videoDuration = backgroundVideoDuration || 0;
-    const videoEndTimeInComposition = videoDuration > 0 ? videoDuration - videoStartTime : 0;
-    const safeZone = 15;
-    const calculatedEndFrame = videoEndTimeInComposition > 0 ? Math.floor(videoEndTimeInComposition * fps) : 0;
-    const videoEndFrame = Math.max(0, calculatedEndFrame - safeZone);
-    const audioEndFrame = durationInFrames;
-
-    // Tính trimBefore (frames) để bắt đầu video từ điểm chỉ định
+    const videoTotalFrames = videoDuration > 0 ? Math.floor(videoDuration * fps) : 0;
     const trimBeforeFrames = Math.floor(videoStartTime * fps);
 
-    // Kiểm tra các trường hợp:
-    const isVideoEnded = videoDuration > 0 && frame >= videoEndFrame;
-    const isAudioEnded = frame >= audioEndFrame;
-    const shouldShowDimOverlay = isAudioEnded && !isVideoEnded && backgroundType === 'video';
+    // Effective duration of one video loop loop
+    const effectiveVideoDurationFrames = Math.max(0, videoTotalFrames - trimBeforeFrames);
 
-    // Frame để freeze: frame cuối của video trong composition
-    const freezeFrame = isVideoEnded && videoEndFrame > 0 ? videoEndFrame - 1 : undefined;
+    const isVideoEnded = videoDuration > 0 && frame >= (effectiveVideoDurationFrames); // Relative to composition start if not looping
+
+    // Logic for returning the Video component
+    const renderVideo = () => (
+        <Video
+            src={backgroundSrc}
+            volume={0}
+            startFrom={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
+            style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
+            }}
+        />
+    );
+
+    const audioEndFrame = durationInFrames;
+    const isAudioEnded = frame >= audioEndFrame;
+
+    const shouldShowDimOverlay = isAudioEnded && !isVideoEnded && backgroundType === 'video';
 
     return (
         <AbsoluteFill style={{ backgroundColor: '#000' }}>
@@ -266,32 +278,21 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
             )}
             {backgroundType === 'video' && backgroundSrc && videoDuration > 0 && (
                 <AbsoluteFill>
-                    {freezeFrame !== undefined ? (
-                        <Freeze frame={freezeFrame}>
-                            <Video
-                                src={backgroundSrc}
-                                volume={0}
-                                startFrom={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
-                                }}
-                            />
-                        </Freeze>
+                    {videoLoop && effectiveVideoDurationFrames > 0 ? (
+                        <Loop durationInFrames={effectiveVideoDurationFrames}>
+                            {renderVideo()}
+                        </Loop>
                     ) : (
-                        <Video
-                            src={backgroundSrc}
-                            volume={0}
-                            startFrom={trimBeforeFrames > 0 ? trimBeforeFrames : undefined}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
-                            }}
-                        />
+                        <>
+                            {/* If not looping, we freeze the last frame when it ends */}
+                            {frame >= effectiveVideoDurationFrames ? (
+                                <Freeze frame={effectiveVideoDurationFrames - 1}>
+                                    {renderVideo()}
+                                </Freeze>
+                            ) : (
+                                renderVideo()
+                            )}
+                        </>
                     )}
                 </AbsoluteFill>
             )}
