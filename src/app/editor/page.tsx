@@ -575,7 +575,7 @@ export default function EditorPage() {
                             />
                         </label>
                         <div className="mt-4">
-                            <label className="flex items-center gap-2 text-xs">
+                            <label className="flex items-center gap-2 text-xs mb-2">
                                 <input
                                     type="checkbox"
                                     checked={enableShadow}

@@ -270,7 +270,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                     const opacity = interpolate(
                         absOffset,
                         [0, 1, 2, 3],
-                        [1, 0.7, 0.4, 0.15],
+                        [1, 0.7, 0.3, 0.1],
                         { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
                     );
                     const scale = 1;
