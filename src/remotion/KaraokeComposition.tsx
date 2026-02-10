@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze } from 'remotion';
 import { loadFont as loadInterTight } from '@remotion/google-fonts/InterTight';
 import { loadFont as loadRoboto } from '@remotion/google-fonts/Roboto';
@@ -135,8 +135,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
 
     // 2. Traditional & Bottom Layouts (Fixed slots)
     // Logic: Slot 1 (Even lines), Slot 2 (Odd lines)
-    // Lookahead: 2 seconds
-    const lookaheadMs = 2000;
 
     // Logic: 
     // - Always show 2 lines: The current one being sung, and the next one.
@@ -202,14 +200,15 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
 
     // Configuration for slots
     // Traditional: Slot 1 (Left/Higher), Slot 2 (Right/Lower)
+    // Adjusted positions higher by 20px
     const slot1Style: React.CSSProperties = {
         position: 'absolute',
-        bottom: isTraditional ? '180px' : '180px', // Top slot (Even lines)
+        bottom: isTraditional ? '200px' : '200px', // Top slot (Even lines)
         left: 0,
     };
     const slot2Style: React.CSSProperties = {
         position: 'absolute',
-        bottom: '60px', // Bottom slot (Odd lines)
+        bottom: '80px', // Bottom slot (Odd lines)
         left: 0,
     };
 
