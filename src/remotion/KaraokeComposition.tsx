@@ -109,29 +109,38 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     const lookaheadMs = 2000;
 
     // Logic: 
-    // - Show the line that is current (started <= frameMs).
-    // - Keep showing it until the NEXT line in the same slot starts.
-    // - If before the FIRST line, show the first line.
+    // - Always show 2 lines: The current one being sung, and the next one.
+    // - When Line K starts:
+    //   - It effectively replaces Line K-2 in its slot.
+    //   - The other slot holds Line K+1 (the next one).
 
-    const findActiveIndex = (mod: number) => {
-        const slotIndices = captions.map((_, i) => i).filter(i => i % 2 === mod);
-        if (slotIndices.length === 0) return -1;
+    // 1. Find the currently active line (latest one that has started)
+    // Default to -1 if we are before the first line
+    const currentActiveIndex = captions.reduce((prev, curr, idx) => {
+        if (curr.startMs <= frameMs) return idx;
+        return prev;
+    }, -1);
 
-        // Find the latest caption that has started
-        const activeIndex = slotIndices.reduce((prev, curr) => {
-            if (captions[curr].startMs <= frameMs) return curr;
-            return prev;
-        }, -1);
+    // If before start, treat as 0 (show first pair)
+    const effectiveIndex = Math.max(0, currentActiveIndex);
 
-        // If found one that started, return it (it stays until replaced by a later one that starts)
-        if (activeIndex !== -1) return activeIndex;
+    // 2. Determine which line goes in which slot
+    // Slot 1 (Even/Top), Slot 2 (Odd/Bottom)
+    let evenLineIndex = -1;
+    let oddLineIndex = -1;
 
-        // If none started (at start of song), return the first one so it's visible for prep
-        return slotIndices[0];
-    };
-
-    const evenIndex = findActiveIndex(0);
-    const oddIndex = findActiveIndex(1);
+    if (effectiveIndex % 2 === 0) {
+        // Current is Even (e.g., 0).
+        // Show Current (0) and Next (1).
+        evenLineIndex = effectiveIndex;
+        oddLineIndex = effectiveIndex + 1;
+    } else {
+        // Current is Odd (e.g., 1).
+        // Show Next (2) and Current (1).
+        // Note: The "Next" line (2) replaces the old Even line (0).
+        evenLineIndex = effectiveIndex + 1;
+        oddLineIndex = effectiveIndex;
+    }
 
     const renderSlot = (index: number, positionStyle: React.CSSProperties, align: 'left' | 'center' | 'right') => {
         if (index === -1) return null;
@@ -262,10 +271,10 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
             {/* Lyrics Layer - Simplified for Traditional/Bottom only */}
             <AbsoluteFill>
                 {/* Even Slot (Line 0, 2, 4...) */}
-                {renderSlot(evenIndex, slot1Style, align1)}
+                {renderSlot(evenLineIndex, slot1Style, align1)}
 
                 {/* Odd Slot (Line 1, 3, 5...) */}
-                {renderSlot(oddIndex, slot2Style, align2)}
+                {renderSlot(oddLineIndex, slot2Style, align2)}
             </AbsoluteFill>
         </AbsoluteFill>
     );
