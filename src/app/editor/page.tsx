@@ -119,6 +119,66 @@ export default function EditorPage() {
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
+
+    // Global hotkeys: Space (play/pause), F (fullscreen), M (mute)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+
+            const tag = target.tagName;
+            const isTyping =
+                tag === 'INPUT' ||
+                tag === 'TEXTAREA' ||
+                tag === 'SELECT' ||
+                target.isContentEditable;
+
+            if (isTyping) {
+                return;
+            }
+
+            const player = playerRef.current;
+            if (!player) return;
+
+            // Space: play / pause
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                player.toggle();
+                return;
+            }
+
+            // F: fullscreen toggle
+            if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                if (player.isFullscreen()) {
+                    player.exitFullscreen();
+                } else {
+                    player.requestFullscreen();
+                }
+                return;
+            }
+
+            // M: mute toggle
+            if (e.key === 'm' || e.key === 'M') {
+                e.preventDefault();
+                if (player.isMuted()) {
+                    player.unmute();
+                    // Khôi phục volume về 1 nếu trước đó đang 0
+                    if (player.getVolume() === 0) {
+                        player.setVolume(1);
+                    }
+                } else {
+                    player.mute();
+                }
+                return;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
     const durationInFrames = audioDurationSec != null ? Math.ceil(audioDurationSec * FPS) : 30 * FPS;
     const videoDurationSec = useVideoDuration(backgroundType === 'video' ? (backgroundUrl ?? null) : null);
 
