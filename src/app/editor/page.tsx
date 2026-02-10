@@ -284,6 +284,20 @@ export default function EditorPage() {
     };
 
     const [renderProgress, setRenderProgress] = useState<number | null>(null);
+    const [renderingId, setRenderingId] = useState<string | null>(null);
+
+    const handleCancel = useCallback(async () => {
+        if (!renderingId) return;
+        try {
+            await fetch(`/api/render?id=${renderingId}`, { method: 'DELETE' });
+            setRenderStatus('Đã hủy render');
+            setRenderProgress(null);
+            setRenderingId(null);
+        } catch (e) {
+            console.error(e);
+            setRenderStatus('Lỗi khi hủy render');
+        }
+    }, [renderingId]);
 
     const handleRender = useCallback(async () => {
         if (!currentAudioSrc) {
@@ -317,22 +331,42 @@ export default function EditorPage() {
             }
             const json = await resp.json();
             if (json.renderId) {
+                setRenderingId(json.renderId);
                 // Poll for progress
                 const pollProgress = async () => {
                     try {
                         const progressResp = await fetch(`/api/render?id=${json.renderId}`);
                         if (progressResp.ok) {
                             const progressData = await progressResp.json();
+                            // If user already cancelled (renderingId is null), stop polling
+                            // But we can't easily access latest state in closure.
+                            // We rely on backend status 'cancelled' or we check if we encounter 404
+
+                            if (progressData.status === 'cancelled') {
+                                setRenderStatus('Đã hủy render');
+                                setRenderProgress(null);
+                                setRenderingId(null);
+                                return;
+                            }
+
                             setRenderProgress(progressData.progress);
                             if (progressData.status === 'done') {
                                 setRenderStatus(`Render xong: ${progressData.filename}`);
                                 setRenderProgress(null);
+                                setRenderingId(null);
                                 return;
                             } else if (progressData.status === 'error') {
                                 setRenderStatus(`Render thất bại: ${progressData.error}`);
                                 setRenderProgress(null);
+                                setRenderingId(null);
                                 return;
                             }
+                        } else if (progressResp.status === 404) {
+                            // Likely cancelled
+                            setRenderStatus('Đã hủy render');
+                            setRenderProgress(null);
+                            setRenderingId(null);
+                            return;
                         }
                         setTimeout(pollProgress, 1000);
                     } catch {
@@ -380,14 +414,14 @@ export default function EditorPage() {
                     )}
                     <button
                         type="button"
-                        onClick={handleRender}
-                        disabled={renderProgress !== null}
+                        onClick={renderProgress !== null ? handleCancel : handleRender}
+                        disabled={renderProgress !== null && !renderingId}
                         className={`px-6 py-3 font-bold rounded-lg shadow-lg transition-all ${renderProgress !== null
-                                ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed'
+                                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
                                 : 'bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black hover:shadow-xl'
                             }`}
                     >
-                        {renderProgress !== null ? 'Đang render...' : 'Render Video'}
+                        {renderProgress !== null ? 'Hủy Render' : 'Render Video'}
                     </button>
                 </div>
             </header>
