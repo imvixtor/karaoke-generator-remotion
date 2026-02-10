@@ -108,18 +108,26 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     // Lookahead: 2 seconds
     const lookaheadMs = 2000;
 
-    // Find active captions for each slot
-    // "Active" means it's the latest line for that slot that has started (or is about to start)
+    // Logic: 
+    // - Show the line that is current (started <= frameMs).
+    // - Keep showing it until the NEXT line in the same slot starts.
+    // - If before the FIRST line, show the first line.
+
     const findActiveIndex = (mod: number) => {
-        let found = -1;
-        for (let i = 0; i < captions.length; i++) {
-            if (i % 2 === mod) {
-                if (captions[i].startMs <= frameMs + lookaheadMs) {
-                    found = i;
-                }
-            }
-        }
-        return found;
+        const slotIndices = captions.map((_, i) => i).filter(i => i % 2 === mod);
+        if (slotIndices.length === 0) return -1;
+
+        // Find the latest caption that has started
+        const activeIndex = slotIndices.reduce((prev, curr) => {
+            if (captions[curr].startMs <= frameMs) return curr;
+            return prev;
+        }, -1);
+
+        // If found one that started, return it (it stays until replaced by a later one that starts)
+        if (activeIndex !== -1) return activeIndex;
+
+        // If none started (at start of song), return the first one so it's visible for prep
+        return slotIndices[0];
     };
 
     const evenIndex = findActiveIndex(0);
