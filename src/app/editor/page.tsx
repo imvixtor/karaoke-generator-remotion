@@ -45,15 +45,15 @@ export default function EditorPage() {
     const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
     const [sungColor, setSungColor] = useState('#00ff88');
     const [unsungColor, setUnsungColor] = useState('#ffffff');
-    const [fontSize, setFontSize] = useState(65);
+    const [fontSize, setFontSize] = useState<number | string>(65);
     const [enableShadow, setEnableShadow] = useState(true);
     const [backgroundDim, setBackgroundDim] = useState(0.30);
     const [backgroundBlur, setBackgroundBlur] = useState(0);
-    const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState(0);
+    const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
     const [crf, setCrf] = useState(25);
     const [renderSample, setRenderSample] = useState(false);
-    const [lyricsLayout, setLyricsLayout] = useState<'traditional' | 'bottom'>('bottom');
+    const [lyricsLayout, setLyricsLayout] = useState<'traditional' | 'bottom'>('traditional');
     const [renderStartTime, setRenderStartTime] = useState<number | null>(null);
     const [renderDuration, setRenderDuration] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
@@ -286,11 +286,11 @@ export default function EditorPage() {
         backgroundSrc: backgroundType !== 'black' ? (backgroundUrl ?? undefined) : undefined,
         backgroundDim,
         backgroundBlur,
-        backgroundVideoStartTime,
+        backgroundVideoStartTime: Number(backgroundVideoStartTime),
         backgroundVideoDuration: videoDurationSec ?? undefined,
         sungColor,
         unsungColor,
-        fontSize,
+        fontSize: Number(fontSize),
         enableShadow,
         durationInFrames,
         fps: FPS,
@@ -578,16 +578,23 @@ export default function EditorPage() {
                                         <div>
                                             <div className="flex justify-between text-xs mb-1">
                                                 <span>Bắt đầu video từ</span>
-                                                <span>{backgroundVideoStartTime.toFixed(1)}s</span>
+                                                <span>{Number(backgroundVideoStartTime).toFixed(1)}s</span>
                                             </div>
                                             <input
-                                                type="range"
+                                                type="number"
                                                 min={0}
                                                 max={videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0}
                                                 step={0.1}
                                                 value={backgroundVideoStartTime}
-                                                onChange={(e) => setBackgroundVideoStartTime(Number(e.target.value))}
-                                                className="w-full accent-green-500"
+                                                onChange={(e) => setBackgroundVideoStartTime(e.target.value)}
+                                                onBlur={() => {
+                                                    let val = Number(backgroundVideoStartTime);
+                                                    if (isNaN(val) || val < 0) val = 0;
+                                                    const max = videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0;
+                                                    if (val > max) val = max;
+                                                    setBackgroundVideoStartTime(val);
+                                                }}
+                                                className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
                                                 disabled={!videoDurationSec}
                                             />
                                         </div>
@@ -632,7 +639,13 @@ export default function EditorPage() {
                                 min={24}
                                 max={120}
                                 value={fontSize}
-                                onChange={(e) => setFontSize(Number(e.target.value))}
+                                onChange={(e) => setFontSize(e.target.value)}
+                                onBlur={() => {
+                                    let val = Number(fontSize);
+                                    if (isNaN(val) || val < 24) val = 24;
+                                    if (val > 120) val = 120;
+                                    setFontSize(val);
+                                }}
                                 className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
                             />
                         </label>

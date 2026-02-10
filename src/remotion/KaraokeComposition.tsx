@@ -123,7 +123,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     fontSize = 65,
     enableShadow = true,
     fps,
-    lyricsLayout = 'bottom',
+    lyricsLayout = 'traditional',
     fontFamily = 'Roboto', // Default font
 }) => {
     const frame = useCurrentFrame();
