@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze, Loop } from 'remotion';
 import { loadFont as loadInterTight } from '@remotion/google-fonts/InterTight';
 import { loadFont as loadRoboto } from '@remotion/google-fonts/Roboto';
@@ -8,22 +8,36 @@ import { loadFont as loadOswald } from '@remotion/google-fonts/Oswald';
 import { loadFont as loadPlayfairDisplay } from '@remotion/google-fonts/PlayfairDisplay';
 import type { KaraokeCompositionProps, KaraokeCaption } from '../types/karaoke';
 
-const { fontFamily: interTight } = loadInterTight();
-const { fontFamily: roboto } = loadRoboto();
-const { fontFamily: lora } = loadLora();
-const { fontFamily: montserrat } = loadMontserrat();
-const { fontFamily: oswald } = loadOswald();
-const { fontFamily: playfairDisplay } = loadPlayfairDisplay();
+/**
+ * Tránh load toàn bộ variants của tất cả font ngay từ đầu (rất nhiều request),
+ * chỉ load đúng font đang được chọn + giới hạn weights/subsets.
+ */
+const resolveFontFamily = (selected: string) => {
+    // Common subset set. "latin-ext" thường cần để hiển thị tiếng Việt tốt hơn.
+    // Nhiều font trên Google Fonts tách riêng subset 'vietnamese' - nếu không load subset này có thể bị lỗi dấu.
+    const subsets: Array<'latin' | 'latin-ext' | 'vietnamese'> = ['latin', 'latin-ext', 'vietnamese'];
+    const weights: Array<'700'> = ['700']; // lyrics đang dùng fontWeight: 'bold'
 
-const fontMap: Record<string, string> = {
-    'Roboto': roboto,
-    'Inter Tight': interTight,
-    'Lora': lora,
-    'Montserrat': montserrat,
-    'Oswald': oswald,
-    'Playfair Display': playfairDisplay,
-    'Arial': 'Arial, sans-serif',
-    'Times New Roman': '"Times New Roman", Times, serif',
+    switch (selected) {
+        case 'Inter Tight':
+            return loadInterTight('normal', { weights, subsets }).fontFamily;
+        case 'Roboto':
+            return loadRoboto('normal', { weights, subsets }).fontFamily;
+        case 'Lora':
+            return loadLora('normal', { weights, subsets }).fontFamily;
+        case 'Montserrat':
+            return loadMontserrat('normal', { weights, subsets }).fontFamily;
+        case 'Oswald':
+            return loadOswald('normal', { weights, subsets }).fontFamily;
+        case 'Playfair Display':
+            return loadPlayfairDisplay('normal', { weights, subsets }).fontFamily;
+        case 'Arial':
+            return 'Arial, sans-serif';
+        case 'Times New Roman':
+            return '"Times New Roman", Times, serif';
+        default:
+            return loadRoboto('normal', { weights, subsets }).fontFamily;
+    }
 };
 
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
@@ -131,8 +145,8 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     const frameMs = (frame / fps) * 1000;
     const { durationInFrames } = useVideoConfig();
 
-    // Map the font name string to the actual loaded font family value
-    const activeFontFamily = fontMap[fontFamily] || roboto;
+    // Map font name -> actual loaded CSS font-family (memoized; do NOT run every frame)
+    const activeFontFamily = useMemo(() => resolveFontFamily(fontFamily), [fontFamily]);
 
     // 2. Traditional & Bottom Layouts (Fixed slots)
     // Logic: Slot 1 (Even lines), Slot 2 (Odd lines)
