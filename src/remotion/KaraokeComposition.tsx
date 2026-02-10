@@ -42,8 +42,7 @@ function KaraokeSubtitleLine({
                 textShadow: enableShadow ? '0 3px 16px rgba(0,0,0,0.85)' : undefined,
                 opacity,
                 transform: `scale(1)`,
-                willChange: 'opacity, transform, filter',
-                // Blur mờ dần cho các câu phụ sẽ được áp dụng từ bên ngoài qua style.filter
+                willChange: 'opacity, transform',
             }}
         >
             {caption.segments && caption.segments.length > 0 ? (
@@ -275,12 +274,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                         { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
                     );
                     const scale = 1;
-                    const blurPx = interpolate(
-                        absOffset,
-                        [0, 1, 2, 3],
-                        [0, 0, 3, 5],
-                        { extrapolateRight: 'clamp', extrapolateLeft: 'clamp' }
-                    );
 
                     // Chỉ render những câu có opacity > 0.1 để tối ưu hiệu suất
                     if (opacity < 0.1) return null;
@@ -298,7 +291,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                                 top: yPosition,
                                 transform: 'translateY(-50%)',
                                 width: '100%',
-                                filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
                             }}
                         >
                             <KaraokeSubtitleLine

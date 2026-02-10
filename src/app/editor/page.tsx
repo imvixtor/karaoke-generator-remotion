@@ -48,10 +48,12 @@ export default function EditorPage() {
     const [fontSize, setFontSize] = useState(65);
     const [enableShadow, setEnableShadow] = useState(true);
     const [enableScrollAnimation, setEnableScrollAnimation] = useState(false);
-    const [backgroundDim, setBackgroundDim] = useState(0.60);
-    const [backgroundBlur, setBackgroundBlur] = useState(30);
+    const [backgroundDim, setBackgroundDim] = useState(0.30);
+    const [backgroundBlur, setBackgroundBlur] = useState(0);
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState(0);
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
+    const [crf, setCrf] = useState(25);
+    const [renderSample, setRenderSample] = useState(false);
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
@@ -237,9 +239,11 @@ export default function EditorPage() {
             enableScrollAnimation,
             audioUrl,
             backgroundUrl,
+            crf,
+            renderSample,
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl]);
+    }, [srtContent, captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, backgroundUrl, crf, renderSample]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -259,6 +263,8 @@ export default function EditorPage() {
                 if (data.enableShadow !== undefined) setEnableShadow(data.enableShadow);
                 if (data.audioUrl) setAudioUrl(data.audioUrl);
                 if (data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
+                if (data.crf) setCrf(data.crf);
+                if (data.renderSample !== undefined) setRenderSample(data.renderSample);
             } catch (e) {
                 console.error('Failed to load saved data:', e);
             }
@@ -324,7 +330,10 @@ export default function EditorPage() {
             const resp = await fetch('/api/render', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputProps),
+                body: JSON.stringify({
+                    inputProps,
+                    options: { crf, renderSample }
+                }),
             });
             if (!resp.ok) {
                 throw new Error(`HTTP ${resp.status}`);
@@ -386,7 +395,7 @@ export default function EditorPage() {
             setRenderStatus('Render thất bại. Kiểm tra console.');
             setRenderProgress(null);
         }
-    }, [playerProps, currentAudioSrc, captions.length]);
+    }, [playerProps, currentAudioSrc, captions.length, crf, renderSample]);
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans">
@@ -417,8 +426,8 @@ export default function EditorPage() {
                         onClick={renderProgress !== null ? handleCancel : handleRender}
                         disabled={renderProgress !== null && !renderingId}
                         className={`px-6 py-3 font-bold rounded-lg shadow-lg transition-all ${renderProgress !== null
-                                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
-                                : 'bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black hover:shadow-xl'
+                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
+                            : 'bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black hover:shadow-xl'
                             }`}
                     >
                         {renderProgress !== null ? 'Hủy Render' : 'Render Video'}
@@ -583,6 +592,40 @@ export default function EditorPage() {
                                     className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
                                 />
                                 Bật animation cuộn
+                            </label>
+                        </div>
+                    </section>
+
+                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
+                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Render Setting</h2>
+                        <div>
+                            <div className="flex justify-between text-xs mb-1">
+                                <span>CRF - Thấp hơn là nét hơn</span>
+                                <span>{crf}</span>
+                            </div>
+                            <input
+                                type="range"
+                                min={10}
+                                max={40}
+                                step={1}
+                                value={crf}
+                                onChange={(e) => setCrf(Number(e.target.value))}
+                                className="w-full accent-green-500"
+                            />
+                            <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+                                <span>10 (Nét)</span>
+                                <span>40 (Nhẹ)</span>
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            <label className="flex items-center gap-2 text-xs">
+                                <input
+                                    type="checkbox"
+                                    checked={renderSample}
+                                    onChange={(e) => setRenderSample(e.target.checked)}
+                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                />
+                                Render mẫu (30s đầu)
                             </label>
                         </div>
                     </section>

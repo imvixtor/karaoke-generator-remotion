@@ -13,7 +13,17 @@ const renderCancels: Record<string, () => void> = {};
 
 export async function POST(request: NextRequest) {
     const renderId = uuidv4();
-    const inputProps = await request.json();
+    const body = await request.json();
+    let inputProps;
+    let options: { crf?: number; renderSample?: boolean } = {};
+
+    // Check if the body has inputProps and options structure or just inputProps (legacy)
+    if (body.inputProps) {
+        inputProps = body.inputProps;
+        options = body.options || {};
+    } else {
+        inputProps = body;
+    }
 
     // Initialize progress immediately
     renderProgress[renderId] = { progress: 0, status: "init" };
@@ -79,6 +89,8 @@ export async function POST(request: NextRequest) {
                 chromiumOptions: {
                     gl: "angle", // Enable GPU acceleration
                 },
+                crf: options.crf,
+                frameRange: options.renderSample ? [0, Math.min(30 * 30, composition.durationInFrames) - 1] : undefined,
                 cancelSignal,
                 onProgress: ({ progress }) => {
                     if (isCancelled) return;
