@@ -205,7 +205,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                     />
                 </AbsoluteFill>
             )}
-            {backgroundType === 'video' && backgroundSrc && (
+            {backgroundType === 'video' && backgroundSrc && videoDuration > 0 && (
                 <AbsoluteFill>
                     {freezeFrame !== undefined ? (
                         <Freeze frame={freezeFrame}>

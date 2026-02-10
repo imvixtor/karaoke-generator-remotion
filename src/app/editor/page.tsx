@@ -54,6 +54,9 @@ export default function EditorPage() {
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
     const [crf, setCrf] = useState(25);
     const [renderSample, setRenderSample] = useState(false);
+    const [renderStartTime, setRenderStartTime] = useState<number | null>(null);
+    const [renderDuration, setRenderDuration] = useState<string | null>(null);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
     const currentAudioSrc = audioUrl ?? '';
     const audioDurationSec = useAudioDuration(currentAudioSrc || null);
@@ -299,6 +302,7 @@ export default function EditorPage() {
             setRenderStatus('Đã hủy render');
             setRenderProgress(null);
             setRenderingId(null);
+            setRenderStartTime(null);
         } catch (e) {
             console.error(e);
             setRenderStatus('Lỗi khi hủy render');
@@ -314,6 +318,10 @@ export default function EditorPage() {
             alert('Vui lòng thêm phụ đề trước khi render.');
             return;
         }
+        if (backgroundType === 'video' && !videoDurationSec) {
+            alert('Đang tải thông tin video nền, vui lòng đợi...');
+            return;
+        }
 
         // Clone and convert to absolute URLs for renderer
         const inputProps = { ...playerProps };
@@ -327,6 +335,9 @@ export default function EditorPage() {
         try {
             setRenderStatus('Đang render...');
             setRenderProgress(0);
+            setRenderStartTime(Date.now());
+            setRenderDuration(null);
+            setDownloadUrl(null);
             const resp = await fetch('/api/render', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -363,6 +374,12 @@ export default function EditorPage() {
                                 setRenderStatus(`Render xong: ${progressData.filename}`);
                                 setRenderProgress(null);
                                 setRenderingId(null);
+
+                                if (renderStartTime) {
+                                    const elapsed = Date.now() - renderStartTime;
+                                    setRenderDuration(`${(elapsed / 1000).toFixed(1)}s`);
+                                }
+                                setDownloadUrl(progressData.filename);
                                 return;
                             } else if (progressData.status === 'error') {
                                 setRenderStatus(`Render thất bại: ${progressData.error}`);
@@ -375,6 +392,7 @@ export default function EditorPage() {
                             setRenderStatus('Đã hủy render');
                             setRenderProgress(null);
                             setRenderingId(null);
+                            setRenderStartTime(null);
                             return;
                         }
                         setTimeout(pollProgress, 1000);
@@ -407,6 +425,21 @@ export default function EditorPage() {
                     <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
                 </div>
                 <div className="flex items-center gap-4">
+                    {renderDuration && (
+                        <span className="text-sm font-mono text-zinc-400">
+                            Thời gian: <span className="text-white">{renderDuration}</span>
+                        </span>
+                    )}
+                    {downloadUrl && (
+                        <a
+                            href={downloadUrl}
+                            download
+                            target="_blank"
+                            className="px-6 py-3 font-bold rounded-lg shadow-lg transition-all bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/30 flex items-center gap-2"
+                        >
+                            <span>Download Video</span>
+                        </a>
+                    )}
                     {renderProgress !== null && (
                         <div className="flex items-center gap-2">
                             <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
                 chromiumOptions: {
                     gl: "angle", // Enable GPU acceleration
                 },
-                crf: options.crf,
+                crf: options.crf ?? 25,
                 frameRange: options.renderSample ? [0, Math.min(30 * 30, composition.durationInFrames) - 1] : undefined,
                 cancelSignal,
                 onProgress: ({ progress }) => {

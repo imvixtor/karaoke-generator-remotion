@@ -49,8 +49,11 @@
     "typescript-eslint": "8.46.0"
   },
   "scripts": {
+    "predev": "node scripts/cleanup-uploads.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/cleanup-uploads.mjs",
     "build": "next build",
+    "prestart": "node scripts/cleanup-uploads.mjs",
     "start": "next start",
     "lint": "eslint .",
     "remotion": "remotion studio",
