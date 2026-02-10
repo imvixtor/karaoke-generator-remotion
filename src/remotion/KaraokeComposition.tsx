@@ -200,15 +200,26 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
 
     // Configuration for slots
     // Traditional: Slot 1 (Left/Higher), Slot 2 (Right/Lower)
-    // Adjusted positions higher by 20px
+
+    // Dynamic height calculation
+    // Line height factor: 1.25 (reduced from 1.4)
+    // Vertical padding: 10px (reduced from 40px)
+    // Gap: 0px (reduced from 10px)
+    const singleLineHeight = fontSize * 1.25 + 10;
+    const gap = 0;
+    const bottomBase = 80;
+
+    const slot1Bottom = bottomBase + singleLineHeight + gap;
+    const slot2Bottom = bottomBase;
+
     const slot1Style: React.CSSProperties = {
         position: 'absolute',
-        bottom: isTraditional ? '200px' : '200px', // Top slot (Even lines)
+        bottom: `${slot1Bottom}px`, // Top slot (Even lines)
         left: 0,
     };
     const slot2Style: React.CSSProperties = {
         position: 'absolute',
-        bottom: '80px', // Bottom slot (Odd lines)
+        bottom: `${slot2Bottom}px`, // Bottom slot (Odd lines)
         left: 0,
     };
 
