@@ -80,6 +80,20 @@ export async function POST(request: NextRequest) {
             renderProgress[renderId] = { progress: 10, status: "rendering" };
             console.log("Rendering...");
 
+            // Auto-detect OS để chọn đúng GPU backend cho Chromium
+            // Windows: "angle", Linux: "egl" hoặc "swangle", macOS: "swangle" hoặc undefined
+            const getGlOption = () => {
+                const platform = process.platform;
+                if (platform === 'win32') {
+                    return 'angle'; // Windows GPU acceleration
+                } else if (platform === 'linux') {
+                    return 'egl'; // Linux GPU acceleration (hoặc 'swangle' nếu không có GPU)
+                } else if (platform === 'darwin') {
+                    return 'swangle'; // macOS (hoặc undefined để dùng default)
+                }
+                return undefined; // Fallback: không set, để Remotion tự chọn
+            };
+
             await renderMedia({
                 composition,
                 serveUrl: bundleLocation,
@@ -87,7 +101,7 @@ export async function POST(request: NextRequest) {
                 outputLocation: finalOutput,
                 inputProps,
                 chromiumOptions: {
-                    gl: "angle", // Enable GPU acceleration
+                    gl: getGlOption(), // Cross-platform GPU acceleration
                 },
                 crf: options.crf ?? 25,
                 frameRange: options.renderSample ? [0, Math.min(30 * 30, composition.durationInFrames) - 1] : undefined,
