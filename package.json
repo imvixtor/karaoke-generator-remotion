@@ -24,6 +24,7 @@
     "remotion": "4.0.420",
     "tailwind-merge": "3.0.1",
     "uuid": "^13.0.0",
+    "wavesurfer.js": "^7.12.1",
     "zod": "3.22.3"
   },
   "devDependencies": {

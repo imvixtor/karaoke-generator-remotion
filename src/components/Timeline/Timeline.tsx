@@ -1,0 +1,165 @@
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import AudioWaveform from './AudioWaveform';
+import SubtitleTrack from './SubtitleTrack';
+import type { KaraokeCaption } from '../../types/karaoke';
+import { PlayerRef } from '@remotion/player';
+import { useSyncExternalStore } from 'react';
+
+// Reuse the hook logic here or import it if exported.
+// Since it was defined in page.tsx and not exported, I'll redefine it here or move it to a hooks file.
+// Ideally move to hooks/useCurrentPlayerFrame.ts but for speed I'll inline a simplified version or assume user can export it.
+// Checking page.tsx, it's not exported. I'll define a local version.
+
+const useTimelinePlayerFrame = (player: PlayerRef | null) => {
+    const subscribe = useCallback(
+        (onStoreChange: () => void) => {
+            if (!player) return () => undefined;
+            const updater = () => onStoreChange();
+            player.addEventListener('frameupdate', updater);
+            return () => player.removeEventListener('frameupdate', updater);
+        },
+        [player],
+    );
+
+    return useSyncExternalStore(
+        subscribe,
+        () => player?.getCurrentFrame() ?? 0,
+        () => 0,
+    );
+};
+
+interface TimelineProps {
+    audioUrl: string | null;
+    captions: KaraokeCaption[];
+    player: PlayerRef | null;
+    duration: number; // in seconds
+    onUpdateCaption: (index: number, caption: KaraokeCaption) => void;
+    selectedIndexes: number[];
+    onSelect: (indexes: number[]) => void;
+}
+
+const Timeline: React.FC<TimelineProps> = ({
+    audioUrl,
+    captions,
+    player,
+    duration,
+    onUpdateCaption,
+    selectedIndexes,
+    onSelect,
+}) => {
+    const [zoom, setZoom] = useState(50); // pixels per second
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // FPS constant - assuming 30 as per page.tsx default
+    const FPS = 30;
+
+    const currentFrame = useTimelinePlayerFrame(player);
+    const currentTime = currentFrame / FPS;
+
+    // Zoom constraints
+    const minZoom = 10;
+    const maxZoom = 200;
+
+    const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, maxZoom));
+    const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, minZoom));
+
+    // Calculate total width
+    const totalWidth = duration * zoom;
+
+    const onSeek = useCallback((time: number) => {
+        if (player) {
+            player.seekTo(time * FPS);
+        }
+    }, [player]);
+
+    const handleContainerClick = (e: React.MouseEvent) => {
+        // Find click position relative to container content
+        if (!scrollContainerRef.current) return;
+        const rect = scrollContainerRef.current.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left + scrollContainerRef.current.scrollLeft;
+        const time = offsetX / zoom;
+        onSeek(time);
+        onSelect([]); // Deselect all when clicking empty space
+    };
+
+    const handleUpdate = useCallback((index: number, newStart: number, newEnd: number) => {
+        const caps = [...captions];
+        if (!caps[index]) return;
+        const updated = { ...caps[index], startMs: newStart, endMs: newEnd };
+        onUpdateCaption(index, updated);
+    }, [captions, onUpdateCaption]);
+
+    // Playhead position
+    const playheadLeft = currentTime * zoom;
+
+    return (
+        <div className="flex flex-col bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden h-auto mt-4">
+            {/* Toolbar */}
+            <div className="h-10 bg-zinc-900 border-b border-zinc-800 flex items-center px-4 gap-4 justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase text-zinc-500">Timeline</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button onClick={handleZoomOut} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">-</button>
+                    <span className="text-xs text-zinc-500 min-w-[60px] text-center">Zoom: {Math.round(zoom)}</span>
+                    <button onClick={handleZoomIn} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">+</button>
+                </div>
+            </div>
+
+            {/* Scrollable Area */}
+            <div
+                ref={scrollContainerRef}
+                className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar"
+                onClick={handleContainerClick}
+            >
+                <div style={{ width: `${Math.max(totalWidth, scrollContainerRef.current?.clientWidth || 0)}px`, position: 'relative', minHeight: '100%' }}>
+                    {/* Ruler */}
+                    <div className="h-6 border-b border-zinc-800 flex relative text-[10px] text-zinc-500 bg-zinc-900/50 select-none pointer-events-none">
+                        {Array.from({ length: Math.ceil(duration) }).map((_, sec) => {
+                            if (sec % 5 !== 0) return null; // Show every 5s
+                            return (
+                                <div key={sec} className="absolute top-0 bottom-0 border-l border-zinc-700 pl-1" style={{ left: `${sec * zoom}px` }}>
+                                    {sec}s
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Tracks */}
+                    <div className="relative min-h-full">
+                        {/* Audio Waveform Track */}
+                        <div className="h-16 border-b border-zinc-800 relative bg-zinc-900/30 overflow-hidden">
+                            <AudioWaveform audioUrl={audioUrl} zoom={zoom} />
+                            <div className="absolute top-1 left-1 text-[10px] text-zinc-500 pointer-events-none">Audio</div>
+                        </div>
+
+                        {/* Subtitle Track */}
+                        <div
+                            className="relative pt-2 pb-2"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <SubtitleTrack
+                                captions={captions}
+                                zoom={zoom}
+                                selectedIndexes={selectedIndexes}
+                                onSelect={onSelect}
+                                onUpdate={handleUpdate}
+                            />
+                            <div className="absolute top-0 left-1 text-[10px] text-zinc-500 pointer-events-none">Subtitles</div>
+                        </div>
+
+                        {/* Playhead */}
+                        <div
+                            className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none z-50 flex flex-col items-center"
+                            style={{ left: `${playheadLeft}px` }}
+                        >
+                            <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-red-500 -ml-[0.5px]"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Timeline;

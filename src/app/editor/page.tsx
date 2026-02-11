@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
-import { CallbackListener, Player, PlayerRef } from '@remotion/player';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Player, PlayerRef } from '@remotion/player';
 import { KaraokeComposition } from '../../remotion/KaraokeComposition';
 import type { KaraokeCaption, BackgroundType, KaraokeCompositionProps } from '../../types/karaoke';
+import Timeline from '../../components/Timeline/Timeline';
 import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
@@ -19,17 +20,7 @@ function msToTimeString(ms: number): string {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
 }
 
-// Helper: Chuyển mm:ss.ms sang ms
-function timeStringToMs(timeStr: string): number {
-    // Định dạng mm:ss.ms hoặc mm:ss
-    const parts = timeStr.split(':');
-    if (parts.length !== 2) return 0;
-    const minutes = parseInt(parts[0], 10) || 0;
 
-    // parseFloat(parts[1]) sẽ parse cả phần thập phân, ví dụ .12 -> 0.12s = 120ms
-    const secondsFloat = parseFloat(parts[1]) || 0;
-    return Math.round((minutes * 60 + secondsFloat) * 1000);
-}
 
 // Helper: Chuyển ms sang SRT format (HH:MM:SS,ms)
 function formatSrtTime(ms: number): string {
@@ -47,49 +38,10 @@ const WIDTH = 1920;
 const HEIGHT = 1080;
 
 // Hook lấy frame hiện tại của Player, được khuyến nghị trong docs Remotion
-const useCurrentPlayerFrame = (ref: React.RefObject<PlayerRef | null>) => {
-    const subscribe = useCallback(
-        (onStoreChange: () => void) => {
-            const { current } = ref;
-            if (!current) {
-                return () => undefined;
-            }
+// Hook removed as it is now defined inside Timeline or unused in this file
 
-            const updater: CallbackListener<'frameupdate'> = () => {
-                onStoreChange();
-            };
-
-            current.addEventListener('frameupdate', updater);
-
-            return () => {
-                current.removeEventListener('frameupdate', updater);
-            };
-        },
-        [ref],
-    );
-
-    const frame = useSyncExternalStore<number>(
-        subscribe,
-        () => ref.current?.getCurrentFrame() ?? 0,
-        () => 0,
-    );
-
-    return frame;
-};
-
-const TimeDisplay: React.FC<{
-    playerRef: React.RefObject<PlayerRef | null>;
-    fps: number;
-}> = ({ playerRef, fps }) => {
-    const frame = useCurrentPlayerFrame(playerRef);
-    const ms = (frame / fps) * 1000;
-
-    return (
-        <div className="font-mono text-cyan-400 font-bold bg-zinc-900 px-3 py-1 rounded border border-zinc-700 shadow-inner">
-            {msToTimeString(ms)}
-        </div>
-    );
-};
+// TimeDisplay component removed as it is unused and causes lint errors
+// If needed later, re-implement as a separate component subscription.
 
 export default function EditorPage() {
     const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -117,7 +69,62 @@ export default function EditorPage() {
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [elapsedTime, setElapsedTime] = useState<number>(0); // ms
     const [fontFamily, setFontFamily] = useState('Roboto');
+    const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
+    const [timelineWarning, setTimelineWarning] = useState<string | null>(null);
+
+    // Clear warning after 3s
+    useEffect(() => {
+        if (timelineWarning) {
+            const timer = setTimeout(() => setTimelineWarning(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [timelineWarning]);
+
+    const handleClearCaptions = useCallback(() => {
+        if (selectedIndexes.length > 0) {
+            // Delete selected
+            setCaptions(prev => prev.filter((_, i) => !selectedIndexes.includes(i)));
+            setSelectedIndexes([]);
+        } else {
+            // Delete all
+            if (window.confirm('Bạn có chắc chắn muốn xóa hết phụ đề không?')) {
+                setCaptions([]);
+            }
+        }
+    }, [selectedIndexes]);
+
+    // ... (rest of code)
+
+    const handleDeleteKey = useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            // Only if not typing in inputs
+            const target = e.target as HTMLElement;
+            if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) return;
+
+            if (selectedIndexes.length > 0) {
+                setCaptions(prev => prev.filter((_, i) => !selectedIndexes.includes(i)));
+                setSelectedIndexes([]);
+                e.preventDefault();
+            }
+        }
+    }, [selectedIndexes]);
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleDeleteKey);
+        return () => window.removeEventListener('keydown', handleDeleteKey);
+    }, [handleDeleteKey]);
+
+
+    // ... inside return
+
+    const [player, setPlayer] = useState<PlayerRef | null>(null);
     const playerRef = useRef<PlayerRef>(null);
+
+    const setPlayerCallback = useCallback((p: PlayerRef | null) => {
+        setPlayer(p);
+        playerRef.current = p;
+    }, []);
+
     const saveTimeoutRef = useRef<number | null>(null);
 
     const currentAudioSrc = audioUrl ?? '';
@@ -283,79 +290,64 @@ export default function EditorPage() {
         URL.revokeObjectURL(url);
     }, [captions]);
 
-    const handleClearCaptions = useCallback(() => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa hết phụ đề không?')) {
-            setCaptions([]);
+
+
+
+
+    const addCaption = useCallback(() => {
+        const audioDuration = audioDurationSec ?? 30;
+        let currentTime = 0;
+
+        if (playerRef.current) {
+            currentTime = playerRef.current.getCurrentFrame() / FPS;
         }
-    }, []);
 
-    const updateCaption = useCallback((index: number, field: keyof KaraokeCaption, value: string | number) => {
-        setCaptions((prev) =>
-            prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
-        );
-    }, []);
+        // Convert to ms
+        const currentMs = currentTime * 1000;
+        const maxDurationMs = 3000;
+        const minDurationMs = 500; // Minimum 0.5s to be usable
 
-    const addCaption = useCallback((afterIndex?: number) => {
-        const audioDuration = audioDurationSec ?? 0;
-        let newStart = 0;
-        let newEnd = 3000;
+        // Find available space
+        // Sort captions by start time
+        const sortedCaps = [...captions].sort((a, b) => a.startMs - b.startMs);
 
-        if (afterIndex !== undefined && captions[afterIndex]) {
-            // Thêm sau dòng chỉ định
-            newStart = captions[afterIndex].endMs;
-            newEnd = Math.min(newStart + 3000, audioDuration * 1000);
-        } else if (captions.length > 0) {
-            // Thêm ở cuối
-            const lastEnd = Math.max(...captions.map(c => c.endMs));
-            newStart = lastEnd;
-            newEnd = Math.min(newStart + 3000, audioDuration * 1000);
+        // Check if current time overlaps
+        const overlap = sortedCaps.find(c => currentMs >= c.startMs && currentMs < c.endMs);
+        if (overlap) {
+            setTimelineWarning("Không thể thêm: Đang trùng với phụ đề khác!");
+            return;
         }
+
+        // Find next caption
+        const nextCap = sortedCaps.find(c => c.startMs > currentMs);
+        const nextStartMs = nextCap ? nextCap.startMs : (audioDuration * 1000);
+
+        const availableGapName = nextStartMs - currentMs;
+
+        if (availableGapName < minDurationMs) {
+            setTimelineWarning("Không đủ chỗ trống để thêm phụ đề (cần ít nhất 0.5s)!");
+            return;
+        }
+
+        const newDuration = Math.min(maxDurationMs, availableGapName);
 
         const newCaption: KaraokeCaption = {
             text: 'Phụ đề mới',
-            startMs: newStart,
-            endMs: newEnd,
-            timestampMs: (newStart + newEnd) / 2,
+            startMs: currentMs,
+            endMs: currentMs + newDuration,
+            timestampMs: currentMs + (newDuration / 2),
             confidence: 1,
         };
 
-        if (afterIndex !== undefined) {
-            setCaptions((prev) => [
-                ...prev.slice(0, afterIndex + 1),
-                newCaption,
-                ...prev.slice(afterIndex + 1),
-            ]);
-        } else {
-            setCaptions((prev) => [...prev, newCaption]);
-        }
+        setCaptions((prev) => [...prev, newCaption]);
+        // Auto select new caption
+        // We need to know the index in the UNSORTED array if we want to select it by index
+        // But since we append, it will be the last index.
+        setSelectedIndexes([captions.length]);
+
     }, [captions, audioDurationSec]);
 
-    const deleteCaption = useCallback((index: number) => {
-        setCaptions((prev) => prev.filter((_, i) => i !== index));
-    }, []);
 
-    // Drag & Drop để sắp xếp lại thứ tự
-    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
-    const handleDragStart = useCallback((index: number) => {
-        setDraggedIndex(index);
-    }, []);
-
-    const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-        e.preventDefault();
-        if (draggedIndex === null || draggedIndex === index) return;
-
-        const newCaptions = [...captions];
-        const draggedItem = newCaptions[draggedIndex];
-        newCaptions.splice(draggedIndex, 1);
-        newCaptions.splice(index, 0, draggedItem);
-        setCaptions(newCaptions);
-        setDraggedIndex(index);
-    }, [captions, draggedIndex]);
-
-    const handleDragEnd = useCallback(() => {
-        setDraggedIndex(null);
-    }, []);
 
     // Lưu cấu hình editor vào sessionStorage với debounce để tránh JSON.stringify quá thường xuyên
     useEffect(() => {
@@ -897,7 +889,7 @@ export default function EditorPage() {
                             <div className="rounded-xl overflow-hidden border border-zinc-800 bg-black aspect-video shadow-2xl">
                                 <Player
                                     acknowledgeRemotionLicense
-                                    ref={playerRef}
+                                    ref={setPlayerCallback}
                                     component={KaraokeComposition}
                                     inputProps={playerProps}
                                     durationInFrames={durationInFrames}
@@ -916,105 +908,68 @@ export default function EditorPage() {
                         )}
                     </div>
 
-                    <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-                        <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-800/50">
-                            <span className="font-bold text-sm">Chỉnh sửa phụ đề ({captions.length} dòng)</span>
+                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 flex flex-col h-auto">
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-zinc-800">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Timeline Editor</h2>
+                                {/* Clock Display moved to Timeline or removed for perf */}
+                                {/* If we need clock, we should make it a separate component that subscribes to player */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => addCaption()}
+                                        className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold"
+                                    >
+                                        + Thêm Sub
+                                    </button>
+                                    <button
+                                        onClick={handleClearCaptions}
+                                        className={`px-3 py-1 text-white rounded text-xs font-bold ${selectedIndexes.length > 0
+                                            ? 'bg-orange-600 hover:bg-orange-500'
+                                            : 'bg-red-600 hover:bg-red-500'
+                                            }`}
+                                    >
+                                        {selectedIndexes.length === 0
+                                            ? 'Xóa hết'
+                                            : selectedIndexes.length === 1
+                                                ? 'Xóa'
+                                                : `Xóa (${selectedIndexes.length})`}
+                                    </button>
+                                    <div className="w-px bg-zinc-700 mx-1"></div>
+                                    <button
+                                        onClick={handleExportSrt}
+                                        className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs"
+                                    >
+                                        Xuất SRT
+                                    </button>
+                                    <label className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs cursor-pointer flex items-center gap-1">
+                                        <span>Nhập SRT</span>
+                                        <input type="file" accept=".srt,.ass,text/plain" onChange={handleSrtFile} className="hidden" />
+                                    </label>
+                                </div>
+                            </div>
 
-                            {/* Clock Display */}
-                            {currentAudioSrc ? (
-                                <TimeDisplay playerRef={playerRef} fps={FPS} />
-                            ) : (
-                                <div className="font-mono text-cyan-400 font-bold bg-zinc-900 px-3 py-1 rounded border border-zinc-700 shadow-inner">
-                                    00:00.00
+                        </div>
+
+                        <div className="flex-1 flex flex-col min-h-0 relative">
+                            {timelineWarning && (
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 bg-red-500/90 text-white px-3 py-1 rounded text-xs font-bold shadow-lg animate-fade-in-down pointer-events-none">
+                                    {timelineWarning}
                                 </div>
                             )}
-
-                            <div className="flex gap-2">
-                                <button type="button" onClick={handleClearCaptions} className="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-500 rounded text-xs">
-                                    Delete all
-                                </button>
-                                <button type="button" onClick={handleExportSrt} className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-xs">
-                                    Export SRT
-                                </button>
-                                <label className="cursor-pointer px-3 py-1 bg-green-500 hover:bg-green-600 text-black font-bold rounded text-xs flex items-center gap-1">
-                                    <span>Import SRT</span>
-                                    <input type="file" accept=".srt,.ass,text/plain" onChange={handleSrtFile} className="hidden" />
-                                </label>
-                            </div>
+                            {/* Timeline Component */}
+                            <Timeline
+                                audioUrl={currentAudioSrc}
+                                captions={captions}
+                                player={player}
+                                duration={audioDurationSec || 30}
+                                selectedIndexes={selectedIndexes}
+                                onSelect={setSelectedIndexes}
+                                onUpdateCaption={(index, newCaption) => {
+                                    setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
+                                }}
+                            />
                         </div>
-
-                        <div className="max-h-[500px] overflow-y-auto p-2 space-y-2 scroller">
-                            {captions.length === 0 ? (
-                                <p className="text-center text-zinc-500 py-8 text-sm">Chưa có phụ đề. Thêm dòng mới hoặc Import file.</p>
-                            ) : (
-                                captions.map((c, i) => (
-                                    <div
-                                        key={i}
-                                        draggable
-                                        onDragStart={() => handleDragStart(i)}
-                                        onDragOver={(e) => handleDragOver(e, i)}
-                                        onDragEnd={handleDragEnd}
-                                        className={`flex gap-2 items-center bg-zinc-800 p-2 rounded border border-zinc-700 ${draggedIndex === i ? 'opacity-50' : ''}`}
-                                    >
-                                        <span className="cursor-move text-zinc-500 px-2 select-none">☰</span>
-                                        <div className="flex flex-col gap-1">
-                                            <input
-                                                type="text"
-                                                value={msToTimeString(c.startMs)}
-                                                onChange={(e) => {
-                                                    const ms = timeStringToMs(e.target.value);
-                                                    if (!isNaN(ms)) updateCaption(i, 'startMs', ms);
-                                                }}
-                                                className="w-20 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-center font-mono"
-                                                placeholder="00:00.00"
-                                            />
-                                            <input
-                                                type="text"
-                                                value={msToTimeString(c.endMs)}
-                                                onChange={(e) => {
-                                                    const ms = timeStringToMs(e.target.value);
-                                                    if (!isNaN(ms)) updateCaption(i, 'endMs', ms);
-                                                }}
-                                                className="w-20 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-center font-mono"
-                                                placeholder="00:00.00"
-                                            />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={c.text}
-                                            onChange={(e) => updateCaption(i, 'text', e.target.value)}
-                                            className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
-                                        />
-                                        <div className="flex flex-col gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => addCaption(i)}
-                                                className="w-6 h-6 flex items-center justify-center bg-zinc-700 hover:bg-zinc-600 rounded text-xs"
-                                                title="Thêm dòng"
-                                            >
-                                                +
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => deleteCaption(i)}
-                                                className="w-6 h-6 flex items-center justify-center bg-red-900/50 hover:bg-red-900 text-red-500 rounded text-xs"
-                                                title="Xóa dòng"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => addCaption()}
-                                className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded text-sm text-zinc-400 flex items-center justify-center gap-2 mt-2"
-                            >
-                                <span>+ Thêm dòng phụ đề</span>
-                            </button>
-                        </div>
-                    </div>
+                    </section>
 
                     {/* Render section moved to header */}
                 </div >
