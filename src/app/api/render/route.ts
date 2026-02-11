@@ -236,7 +236,11 @@ export async function POST(request: NextRequest) {
             // [final_bg][fg] overlay -> output
 
             let currentBgLabel = "";
-            const durationSec = durationInFrames / fps;
+
+            // Calculate actual duration in seconds based on what we rendered (Step 1)
+            // If renderSample is true, we only rendered 30s.
+            const frameCountToRender = options.renderSample ? Math.min(30 * 30, durationInFrames) : durationInFrames;
+            const durationSec = frameCountToRender / fps;
 
             if (bgIndex !== -1) {
                 let lastLabel = `${bgIndex}:v`;
