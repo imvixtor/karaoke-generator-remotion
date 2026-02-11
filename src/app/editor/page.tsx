@@ -105,7 +105,7 @@ export default function EditorPage() {
     const [fontSize, setFontSize] = useState<number | string>(65);
     const [enableShadow, setEnableShadow] = useState(false); // Default false
     const [backgroundDim, setBackgroundDim] = useState(0.30);
-    const [backgroundBlur, setBackgroundBlur] = useState(0);
+
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [videoLoop, setVideoLoop] = useState(false); // New Loop option
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
@@ -363,7 +363,7 @@ export default function EditorPage() {
             captions,
             backgroundType,
             backgroundDim,
-            backgroundBlur,
+
             backgroundVideoStartTime,
             sungColor,
             unsungColor,
@@ -399,7 +399,7 @@ export default function EditorPage() {
                 window.clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [captions, backgroundType, backgroundDim, backgroundBlur, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, audioFileName, backgroundUrl, backgroundFileName, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
+    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, audioFileName, backgroundUrl, backgroundFileName, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -411,7 +411,7 @@ export default function EditorPage() {
                 if (data.captions) setCaptions(data.captions);
                 if (data.backgroundType) setBackgroundType(data.backgroundType);
                 if (data.backgroundDim !== undefined) setBackgroundDim(data.backgroundDim);
-                if (data.backgroundBlur !== undefined) setBackgroundBlur(data.backgroundBlur);
+
                 if (data.backgroundVideoStartTime !== undefined) setBackgroundVideoStartTime(data.backgroundVideoStartTime);
                 if (data.sungColor) setSungColor(data.sungColor);
                 if (data.unsungColor) setUnsungColor(data.unsungColor);
@@ -438,7 +438,7 @@ export default function EditorPage() {
         backgroundType,
         backgroundSrc: backgroundType !== 'black' ? (backgroundUrl ?? undefined) : undefined,
         backgroundDim,
-        backgroundBlur,
+
         backgroundVideoStartTime: Number(backgroundVideoStartTime),
         backgroundVideoDuration: videoDurationSec ?? undefined,
         sungColor,
@@ -706,21 +706,7 @@ export default function EditorPage() {
                                     />
                                 </div>
 
-                                <div>
-                                    <div className="flex justify-between text-xs mb-1">
-                                        <span>Độ blur nền</span>
-                                        <span>{Math.round(backgroundBlur)}px</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={backgroundBlur}
-                                        onChange={(e) => setBackgroundBlur(Number(e.target.value))}
-                                        className="w-full accent-green-500"
-                                    />
-                                </div>
+
 
                                 {backgroundType === 'video' && (
                                     <>

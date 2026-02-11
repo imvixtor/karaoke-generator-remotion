@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
             const bgType = inputProps.backgroundType; // 'video' | 'image' | 'black'
             const audioSrc = inputProps.audioSrc;
             const bgDim = inputProps.backgroundDim ?? 0;
-            const bgBlur = inputProps.backgroundBlur ?? 0;
+
             const videoLoop = inputProps.videoLoop ?? false;
             const videoStartTime = inputProps.backgroundVideoStartTime ?? 0;
 
@@ -259,14 +259,7 @@ export async function POST(request: NextRequest) {
                 filterComplex.push(`[${lastLabel}]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}:(iw-${width})/2:(ih-${height})/2[bg_scaled]`);
                 lastLabel = "bg_scaled";
 
-                // 2. Blur
-                if (bgBlur > 0) {
-                    // Map 0-100 remotion blur roughly to sigma? Remotion usually uses css pixels.
-                    // sigma = radius / 2 roughly.
-                    const sigma = bgBlur;
-                    filterComplex.push(`[${lastLabel}]gblur=sigma=${sigma}[bg_blurred]`);
-                    lastLabel = "bg_blurred";
-                }
+
 
                 // 3. Dim
                 // Remotion dim is overlay black with opacity = 1 - backgroundDim?

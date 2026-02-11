@@ -79,7 +79,7 @@ function KaraokeSubtitleLine({
                 fontWeight: 'bold',
                 fontSize: fontSize * scale,
                 lineHeight: 1.4,
-                textShadow: enableShadow ? '0 3px 16px rgba(0,0,0,0.85)' : undefined,
+                textShadow: enableShadow ? '0 3px 14px rgba(0,0,0,1)' : undefined,
                 opacity,
                 transform: `scale(1)`,
                 willChange: 'opacity, transform',
@@ -129,7 +129,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     backgroundType,
     backgroundSrc,
     backgroundDim = 0.60,
-    backgroundBlur = 0,
+
     backgroundVideoStartTime = 0,
     backgroundVideoDuration,
     sungColor = '#00ff88',
@@ -265,7 +265,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
             }}
         />
     );
@@ -290,7 +289,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover',
-                            filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
                         }}
                     />
                 </AbsoluteFill>

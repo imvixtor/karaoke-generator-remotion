@@ -23,8 +23,7 @@ export type KaraokeCompositionProps = {
     backgroundSrc?: string;
     /** Độ mờ nền (0 = tối hẳn, 1 = không mờ). Chỉ áp dụng khi nền là image/video. */
     backgroundDim?: number;
-    /** Độ blur nền (0 = không blur, 100 = blur tối đa). Chỉ áp dụng khi nền là image/video. */
-    backgroundBlur?: number;
+
     /** Thời điểm bắt đầu phát video nền (giây). Chỉ áp dụng khi nền là video. */
     backgroundVideoStartTime?: number;
     /** Độ dài video nền (giây). Chỉ áp dụng khi nền là video. Nếu không có, sẽ tự động detect. */
