@@ -91,11 +91,15 @@ export async function POST(request: NextRequest) {
             renderProgress[renderId] = { progress: 5, status: "selecting" };
             console.log(`[${renderId}] Selecting composition...`);
 
+            // Force renderForegroundOnly = true in inputProps
+            const step1InputProps = { ...inputProps, renderForegroundOnly: true };
+
             // Calculate metadata to get duration/fps
+            // Pass step1InputProps to selectComposition to ensure calculateMetadata sees the override
             const composition = await selectComposition({
                 serveUrl: bundleLocation,
                 id: compositionId,
-                inputProps,
+                inputProps: step1InputProps,
             });
 
             const { fps, durationInFrames, width, height } = composition;
@@ -104,9 +108,6 @@ export async function POST(request: NextRequest) {
             if (isCancelled) throw new Error("Cancelled");
             renderProgress[renderId] = { progress: 10, status: "rendering_fg" };
             console.log(`[${renderId}] Step 1: Rendering Foreground...`);
-
-            // Force renderForegroundOnly = true in inputProps
-            const step1InputProps = { ...inputProps, renderForegroundOnly: true };
 
             const autoDetectedGl = (() => {
                 const platform = process.platform;
@@ -182,6 +183,7 @@ export async function POST(request: NextRequest) {
             const bgDim = inputProps.backgroundDim ?? 0;
             const bgBlur = inputProps.backgroundBlur ?? 0;
             const videoLoop = inputProps.videoLoop ?? false;
+            const videoStartTime = inputProps.backgroundVideoStartTime ?? 0;
 
             // Construct FFmpeg command
             // Inputs:
@@ -212,10 +214,17 @@ export async function POST(request: NextRequest) {
             } else if (bgType === 'video' && bgSrc) {
                 // Video input
                 // Check if loop needed. FFmpeg -stream_loop -1 must be before -i
+                // Also apply start time if provided (trimming)
+                // -ss before -i seeks input.
+                const ss = videoStartTime > 0 ? `-ss ${videoStartTime}` : "";
+
                 if (videoLoop) {
-                    inputs.push(`-stream_loop -1 -i "${bgSrc}"`);
+                    // -stream_loop -1 loops the input.
+                    // If we use -ss before -i, it seeks first.
+                    // Combined: -ss ... -stream_loop -1 -i ...
+                    inputs.push(`${ss} -stream_loop -1 -i "${bgSrc}"`);
                 } else {
-                    inputs.push(`-i "${bgSrc}"`);
+                    inputs.push(`${ss} -i "${bgSrc}"`);
                 }
                 bgIndex = streamIndex++;
             } else {

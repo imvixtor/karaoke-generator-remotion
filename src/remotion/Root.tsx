@@ -51,7 +51,10 @@ export const RemotionRoot: React.FC = () => {
         calculateMetadata={({ props }) => {
           // Use durationInFrames from props if provided
           const duration = props.durationInFrames || 30 * 30;
-          return { durationInFrames: duration };
+          return {
+            durationInFrames: duration,
+            props: props, // Return props to ensure they are passed to the component
+          };
         }}
       />
     </>

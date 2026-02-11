@@ -142,6 +142,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     videoLoop = false,
     renderForegroundOnly = false,
 }) => {
+    console.log(`[KaraokeComposition] renderForegroundOnly: ${renderForegroundOnly}, backgroundType: ${backgroundType}`);
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
     const { durationInFrames } = useVideoConfig();
