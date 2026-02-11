@@ -72,14 +72,37 @@ const Timeline: React.FC<TimelineProps> = ({
         }
     }, [player]);
 
-    const handleContainerClick = (e: React.MouseEvent) => {
+    const handleMouseDown = (e: React.MouseEvent) => {
         // Find click position relative to container content
         if (!scrollContainerRef.current) return;
         const rect = scrollContainerRef.current.getBoundingClientRect();
         const offsetX = e.clientX - rect.left + scrollContainerRef.current.scrollLeft;
         const time = offsetX / zoom;
+
         onSeek(time);
         onSelect([]); // Deselect all when clicking empty space
+
+        const startX = e.clientX;
+        const startScrollLeft = scrollContainerRef.current.scrollLeft;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            if (!scrollContainerRef.current) return;
+            const moveRect = scrollContainerRef.current.getBoundingClientRect();
+
+            // Calculate new time based on mouse position relative to container content
+            const currentGenericOffsetX = moveEvent.clientX - moveRect.left + scrollContainerRef.current.scrollLeft;
+            const newTime = Math.max(0, currentGenericOffsetX / zoom);
+
+            onSeek(newTime);
+        };
+
+        const handleMouseUp = () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
     };
 
     const handleUpdate = useCallback((index: number, newStart: number, newEnd: number) => {
@@ -110,7 +133,7 @@ const Timeline: React.FC<TimelineProps> = ({
             <div
                 ref={scrollContainerRef}
                 className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar"
-                onClick={handleContainerClick}
+                onMouseDown={handleMouseDown}
             >
                 <div style={{ width: `${Math.max(totalWidth, scrollContainerRef.current?.clientWidth || 0)}px`, position: 'relative', minHeight: '100%' }}>
                     {/* Ruler */}

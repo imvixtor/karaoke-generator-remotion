@@ -42,11 +42,11 @@ const SubtitleTrack: React.FC<SubtitleTrackProps> = ({
             className="relative w-full bg-zinc-900 border-b border-zinc-800 transition-all duration-300"
             style={{ height: '64px' }} // Fixed height for single track
             onClick={(e) => {
-                // If clicking directly on the track (not on a clip), deselect all
                 if (e.target === e.currentTarget) {
                     onSelect([]);
                 }
             }}
+            onMouseDown={(e) => e.stopPropagation()}
         >
             {sortedCaptions.map((caption, i) => {
                 // Determine constraints based on neighbors
