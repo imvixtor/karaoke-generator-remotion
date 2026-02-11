@@ -128,14 +128,14 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     captions,
     backgroundType,
     backgroundSrc,
-    backgroundDim = 0.60,
+    backgroundDim = 0.50,
 
     backgroundVideoStartTime = 0,
     backgroundVideoDuration,
     sungColor = '#00ff88',
     unsungColor = '#ffffff',
     fontSize = 65,
-    enableShadow = false, // Default changed to false
+    enableShadow = true, // Default changed to true
     fps,
     lyricsLayout = 'traditional',
     fontFamily = 'Roboto', // Default font

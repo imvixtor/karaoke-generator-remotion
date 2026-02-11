@@ -103,8 +103,8 @@ export default function EditorPage() {
     const [sungColor, setSungColor] = useState('#00ff88');
     const [unsungColor, setUnsungColor] = useState('#ffffff');
     const [fontSize, setFontSize] = useState<number | string>(65);
-    const [enableShadow, setEnableShadow] = useState(false); // Default false
-    const [backgroundDim, setBackgroundDim] = useState(0.30);
+    const [enableShadow, setEnableShadow] = useState(true); // Default true
+    const [backgroundDim, setBackgroundDim] = useState(0.50);
 
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [videoLoop, setVideoLoop] = useState(false); // New Loop option

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
             const bgSrc = inputProps.backgroundSrc;
             const bgType = inputProps.backgroundType; // 'video' | 'image' | 'black'
             const audioSrc = inputProps.audioSrc;
-            const bgDim = inputProps.backgroundDim ?? 0;
+            const bgDim = inputProps.backgroundDim ?? 0.5;
 
             const videoLoop = inputProps.videoLoop ?? false;
             const videoStartTime = inputProps.backgroundVideoStartTime ?? 0;
