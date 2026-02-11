@@ -45,4 +45,6 @@ export type KaraokeCompositionProps = {
     /** Font chữ */
     fontFamily?: string;
     videoLoop?: boolean; // Tùy chọn lặp lại video nền
+    /** Nếu true, chỉ render lớp foreground (text/effect) trên nền trong suốt */
+    renderForegroundOnly?: boolean;
 };

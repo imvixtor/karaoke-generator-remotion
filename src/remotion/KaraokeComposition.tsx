@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React, { useMemo } from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig, Img, Video, Freeze, Loop } from 'remotion';
 import { loadFont as loadInterTight } from '@remotion/google-fonts/InterTight';
 import { loadFont as loadRoboto } from '@remotion/google-fonts/Roboto';
@@ -140,6 +140,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     lyricsLayout = 'traditional',
     fontFamily = 'Roboto', // Default font
     videoLoop = false,
+    renderForegroundOnly = false,
 }) => {
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
@@ -273,11 +274,14 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
 
     const shouldShowDimOverlay = isAudioEnded && !isVideoEnded && backgroundType === 'video';
 
+    // Nếu renderForegroundOnly = true, trả về nền trong suốt (null) cho phần background
+    const showBackground = !renderForegroundOnly;
+
     return (
-        <AbsoluteFill style={{ backgroundColor: '#000' }}>
-            {/* Background layer */}
-            {backgroundType === 'black' && null}
-            {backgroundType === 'image' && backgroundSrc && (
+        <AbsoluteFill style={{ backgroundColor: showBackground ? '#000' : 'transparent' }}>
+            {/* Background layer - chỉ render nếu không phải mode foreground-only */}
+            {showBackground && backgroundType === 'black' && null}
+            {showBackground && backgroundType === 'image' && backgroundSrc && (
                 <AbsoluteFill>
                     <Img
                         src={backgroundSrc}
@@ -290,7 +294,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                     />
                 </AbsoluteFill>
             )}
-            {backgroundType === 'video' && backgroundSrc && videoDuration > 0 && (
+            {showBackground && backgroundType === 'video' && backgroundSrc && videoDuration > 0 && (
                 <AbsoluteFill>
                     {videoLoop && effectiveVideoDurationFrames > 0 ? (
                         <Loop durationInFrames={effectiveVideoDurationFrames}>
@@ -312,7 +316,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
             )}
 
             {/* Lớp làm mờ nền */}
-            {(backgroundType === 'image' || backgroundType === 'video') && (
+            {showBackground && (backgroundType === 'image' || backgroundType === 'video') && (
                 <AbsoluteFill
                     style={{
                         backgroundColor: '#000',
