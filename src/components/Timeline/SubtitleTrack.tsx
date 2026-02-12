@@ -39,7 +39,7 @@ const SubtitleTrack: React.FC<SubtitleTrackProps> = ({
 
     return (
         <div
-            className="relative w-full bg-zinc-900 border-b border-zinc-800 transition-all duration-300"
+            className="relative w-full bg-card/50 border-b border-border transition-all duration-300"
             style={{ height: '64px' }} // Fixed height for single track
             onClick={(e) => {
                 if (e.target === e.currentTarget) {

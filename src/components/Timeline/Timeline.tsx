@@ -176,21 +176,21 @@ const Timeline: React.FC<TimelineProps> = ({
     }, [zoom]);
 
     return (
-        <div className="flex flex-col bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden h-auto">
+        <div className="flex flex-col bg-background border-none rounded-none h-full min-h-0 select-none">
             {/* Scrollable Area */}
             <div
                 ref={scrollContainerRef}
-                className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar divide-y divide-zinc-800"
+                className="flex-1 overflow-x-auto overflow-y-hidden relative custom-scrollbar divide-y divide-border min-h-0"
                 onMouseDown={handleMouseDown}
             >
-                <div style={{ width: `${Math.max(totalWidth, scrollContainerRef.current?.clientWidth || 0)}px`, position: 'relative', minHeight: '100%' }}>
+                <div style={{ width: `${Math.max(totalWidth, scrollContainerRef.current?.clientWidth || 0)}px`, position: 'relative', height: '100%' }}>
                     {/* Ruler */}
                     {React.useMemo(() => (
-                        <div className="h-6 border-b border-zinc-800 flex relative text-[10px] text-zinc-500 bg-zinc-900/50 select-none pointer-events-none">
+                        <div className="h-8 border-b border-border flex relative text-[10px] text-muted-foreground bg-secondary/30 pointer-events-none">
                             {Array.from({ length: Math.ceil(duration) }).map((_, sec) => {
                                 if (sec % 5 !== 0) return null; // Show every 5s
                                 return (
-                                    <div key={sec} className="absolute top-0 bottom-0 border-l border-zinc-700 pl-1" style={{ left: `${sec * zoom}px` }}>
+                                    <div key={sec} className="absolute top-0 bottom-0 border-l border-border pl-1" style={{ left: `${sec * zoom}px` }}>
                                         {sec}s
                                     </div>
                                 );
@@ -199,16 +199,16 @@ const Timeline: React.FC<TimelineProps> = ({
                     ), [duration, zoom])}
 
                     {/* Tracks */}
-                    <div className="relative min-h-full">
+                    <div className="relative flex-1 min-h-[200px]">
                         {/* Audio Waveform Track */}
-                        <div className="h-16 border-b border-zinc-800 relative bg-zinc-900/30 overflow-hidden">
+                        <div className="h-20 border-b border-border relative bg-secondary/10 overflow-hidden group">
                             <AudioWaveform audioUrl={audioUrl} zoom={zoom} />
-                            <div className="absolute top-1 left-1 text-[10px] text-zinc-500 pointer-events-none">Audio</div>
+                            <div className="absolute top-1 left-2 text-[10px] uppercase font-bold text-muted-foreground group-hover:text-foreground transition-colors pointer-events-none bg-background/50 px-1 rounded">Audio</div>
                         </div>
 
                         {/* Subtitle Track */}
                         <div
-                            className="relative pt-2 pb-2"
+                            className="relative py-4 h-32"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <SubtitleTrack
@@ -218,7 +218,7 @@ const Timeline: React.FC<TimelineProps> = ({
                                 onSelect={onSelect}
                                 onUpdate={handleUpdate}
                             />
-                            <div className="absolute top-0 left-1 text-[10px] text-zinc-500 pointer-events-none">Subtitles</div>
+                            <div className="absolute top-1 left-2 text-[10px] uppercase font-bold text-muted-foreground pointer-events-none bg-background/50 px-1 rounded">Subtitles</div>
                         </div>
 
                         {/* Playhead */}
@@ -226,7 +226,7 @@ const Timeline: React.FC<TimelineProps> = ({
                             className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none z-50 flex flex-col items-center"
                             style={{ left: `${playheadLeft}px` }}
                         >
-                            <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-red-500 -ml-[0.5px]"></div>
+                            <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-red-500 -ml-[0px]"></div>
                         </div>
                     </div>
                 </div>

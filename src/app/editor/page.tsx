@@ -9,6 +9,8 @@ import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
 import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
+import { Moon, Sun, Monitor, Download, X, Film, Music, Type, Settings, Layers, Image as ImageIcon, FileText } from 'lucide-react';
+import { useTheme } from "next-themes";
 
 const STORAGE_KEY = 'karaoke-editor-data';
 
@@ -45,6 +47,11 @@ const HEIGHT = 1080;
 // If needed later, re-implement as a separate component subscription.
 
 export default function EditorPage() {
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [audioFileName, setAudioFileName] = useState<string | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -620,314 +627,325 @@ export default function EditorPage() {
         }
     }, [selectedIndexes]);
 
+    if (!mounted) return null;
+
     return (
         <div
-            className="h-screen flex flex-col bg-zinc-950 text-zinc-200 font-sans overflow-hidden"
+            className="h-screen flex flex-col bg-background text-foreground font-sans overflow-hidden"
             onClick={handleGlobalClick}
         >
-            <header className="flex-shrink-0 px-8 py-4 flex justify-between items-center bg-zinc-950 z-20">
-                <div>
-                    <h1 className="text-3xl font-bold text-green-500 mb-2">
-                        Karaoke Generator
-                    </h1>
-                    <p className="text-zinc-400 text-sm">Chỉnh sửa phụ đề, nền và xuất video với Remotion</p>
+            {/* Header */}
+            <header className="flex-shrink-0 px-6 py-3 flex justify-between items-center border-b border-border bg-card/50 backdrop-blur-sm z-20">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                        <Music className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
+                            Karaoke Generator
+                        </h1>
+                        <p className="text-muted-foreground text-xs">Studio Edition</p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-end gap-1">
+
+                <div className="flex items-center gap-3">
+                    {/* Theme Toggle */}
+                    <div className="flex items-center bg-secondary/50 rounded-full p-1 border border-border">
+                        <button
+                            onClick={() => setTheme("light")}
+                            className={`p-1.5 rounded-full transition-all ${theme === 'light' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <Sun className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setTheme("system")}
+                            className={`p-1.5 rounded-full transition-all ${theme === 'system' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <Monitor className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setTheme("dark")}
+                            className={`p-1.5 rounded-full transition-all ${theme === 'dark' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            <Moon className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <div className="h-6 w-px bg-border mx-2" />
+
+                    <div className="flex flex-col items-end gap-1 min-w-[150px]">
                         {renderProgress !== null && (
-                            <div className="flex items-center gap-2">
-                                <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                            <div className="flex items-center gap-2 w-full">
+                                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-gradient-to-r from-cyan-500 to-green-500 transition-all duration-300"
+                                        className="h-full bg-primary transition-all duration-300"
                                         style={{ width: `${renderProgress}%` }}
                                     />
                                 </div>
-                                <span className="text-xs font-mono text-cyan-400">{renderProgress}%</span>
+                                <span className="text-xs font-mono text-primary">{renderProgress}%</span>
                             </div>
                         )}
                         {renderStatus && renderProgress === null && (
-                            <span className="text-sm font-mono text-cyan-400">{renderStatus}</span>
+                            <span className="text-xs font-mono text-muted-foreground truncate max-w-[200px]" title={renderStatus}>{renderStatus}</span>
                         )}
                         {(renderStartTime || renderDuration) && (
-                            <span className="text-xs font-mono text-zinc-500">
-                                {renderProgress !== null ? formatTimer(elapsedTime) : `Thời gian: ${renderDuration}`}
+                            <span className="text-xs font-mono text-muted-foreground/80">
+                                {renderProgress !== null ? formatTimer(elapsedTime) : `Time: ${renderDuration}`}
                             </span>
                         )}
                     </div>
+
                     {downloadUrl && (
                         <a
                             href={downloadUrl}
                             download
                             target="_blank"
-                            className="px-6 py-3 font-bold rounded-lg shadow-lg transition-all bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/30 flex items-center gap-2"
+                            className="px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-all bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
                         >
-                            <span>Download Video</span>
+                            <Download className="w-4 h-4" />
+                            <span>Download</span>
                         </a>
                     )}
                     <button
                         type="button"
                         onClick={renderProgress !== null ? handleCancel : handleRender}
                         disabled={renderProgress !== null && !renderingId}
-                        className={`px-6 py-3 font-bold rounded-lg shadow-lg transition-all ${renderProgress !== null
-                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
-                            : 'bg-gradient-to-r from-green-500 to-green-400 hover:from-green-700 hover:to-green-500 text-black hover:shadow-xl'
+                        className={`px-4 py-2 text-sm font-medium rounded-lg shadow-sm transition-all flex items-center gap-2 ${renderProgress !== null
+                            ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                            : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'
                             }`}
                     >
-                        {renderProgress !== null ? 'Hủy Render' : 'Render Video'}
+                        {renderProgress !== null ? <X className="w-4 h-4" /> : <Film className="w-4 h-4" />}
+                        {renderProgress !== null ? 'Hủy Render' : 'Export Video'}
                     </button>
                 </div>
             </header>
 
-            <div className="flex-1 min-h-0 flex gap-4 p-4 pt-0">
-                <aside className="w-80 flex-shrink-0 flex flex-col h-full">
-                    <div className="flex flex-col h-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                            <section>
-                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Âm thanh</h2>
-                                <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-sm bg-zinc-800 p-2 rounded mb-2 border border-zinc-700" />
-                                {(audioFileName || audioFile) && (
-                                    <p className="text-xs text-zinc-500 truncate">
-                                        {audioFileName ?? audioFile?.name}
-                                    </p>
-                                )}
-                            </section>
+            {/* Main Layout - 3 Pane Grid */}
+            <div className="flex-1 min-h-0 grid grid-cols-[320px_1fr_320px] grid-rows-[1fr_280px] gap-0">
+                {/* Left Sidebar - Settings */}
+                <aside className="row-span-1 bg-card border-r border-border flex flex-col min-h-0 z-10">
+                    <div className="p-4 border-b border-border">
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <Settings className="w-3 h-3" /> Cấu hình
+                        </h2>
+                    </div>
 
-                            <div className="border-t border-zinc-800" />
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                        {/* Audio Section */}
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <Music className="w-4 h-4 text-muted-foreground" />
+                                File Âm thanh
+                            </div>
 
-                            <section>
-                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Nền</h2>
-                                <select
-                                    value={backgroundType}
-                                    onChange={(e) => setBackgroundType(e.target.value as BackgroundType)}
-                                    className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm mb-4"
-                                >
-                                    <option value="black">Đen (mặc định)</option>
-                                    <option value="image">Hình ảnh</option>
-                                    <option value="video">Video</option>
-                                </select>
-                                {(backgroundType === 'image' || backgroundType === 'video') && (
-                                    <div className="space-y-4">
-                                        <input
-                                            type="file"
-                                            accept={backgroundType === 'image' ? 'image/*' : 'video/*'}
-                                            onChange={handleBackgroundFile}
-                                            className="w-full text-sm bg-zinc-800 p-2 rounded border border-zinc-700"
-                                        />
-                                        {(backgroundFileName || backgroundFile) && (
-                                            <p className="text-xs text-zinc-500 truncate">
-                                                {backgroundFileName ?? backgroundFile?.name}
-                                            </p>
-                                        )}
+                            <div className="card-input-wrapper">
+                                <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1" />
+                            </div>
+                            {(audioFileName || audioFile) && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 bg-secondary/30 p-2 rounded">
+                                    <FileText className="w-3 h-3" />
+                                    <span className="truncate">{audioFileName ?? audioFile?.name}</span>
+                                </p>
+                            )}
+                        </section>
 
-                                        <div>
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span>Độ mờ nền</span>
-                                                <span>{Math.round(backgroundDim * 100)}%</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min={0}
-                                                max={1}
-                                                step={0.05}
-                                                value={backgroundDim}
-                                                onChange={(e) => setBackgroundDim(Number(e.target.value))}
-                                                className="w-full accent-green-500"
-                                            />
+                        <div className="h-px bg-border my-2" />
+
+                        {/* Background Section */}
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                                Nền Video
+                            </div>
+
+                            <select
+                                value={backgroundType}
+                                onChange={(e) => setBackgroundType(e.target.value as BackgroundType)}
+                                className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm focus:ring-1 focus:ring-ring outline-none"
+                            >
+                                <option value="black">Màu đen (Mặc định)</option>
+                                <option value="image">Hình ảnh</option>
+                                <option value="video">Video</option>
+                            </select>
+
+                            {(backgroundType === 'image' || backgroundType === 'video') && (
+                                <div className="space-y-4 animate-accordion-down">
+                                    <input
+                                        type="file"
+                                        accept={backgroundType === 'image' ? 'image/*' : 'video/*'}
+                                        onChange={handleBackgroundFile}
+                                        className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1"
+                                    />
+                                    {(backgroundFileName || backgroundFile) && (
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1 bg-secondary/30 p-2 rounded">
+                                            <FileText className="w-3 h-3" />
+                                            <span className="truncate">{backgroundFileName ?? backgroundFile?.name}</span>
+                                        </p>
+                                    )}
+
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-muted-foreground">Độ tối nền</span>
+                                            <span className="font-mono">{Math.round(backgroundDim * 100)}%</span>
                                         </div>
-
-                                        {backgroundType === 'video' && (
-                                            <>
-                                                <div>
-                                                    <div className="flex justify-between text-xs mb-1">
-                                                        <span>Bắt đầu video từ</span>
-                                                        <span>{Number(backgroundVideoStartTime).toFixed(1)}s</span>
-                                                    </div>
-                                                    <input
-                                                        type="number"
-                                                        min={0}
-                                                        max={videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0}
-                                                        step={0.1}
-                                                        value={backgroundVideoStartTime}
-                                                        onChange={(e) => setBackgroundVideoStartTime(e.target.value)}
-                                                        onBlur={() => {
-                                                            let val = Number(backgroundVideoStartTime);
-                                                            if (isNaN(val) || val < 0) val = 0;
-                                                            const max = videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0;
-                                                            if (val > max) val = max;
-                                                            setBackgroundVideoStartTime(val);
-                                                        }}
-                                                        className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
-                                                        disabled={!videoDurationSec}
-                                                    />
-                                                </div>
-                                                {videoDurationSec && (
-                                                    <p className="text-xs text-zinc-500 mt-1">
-                                                        Video: {videoDurationSec.toFixed(1)}s |
-                                                        Audio: {audioDurationSec?.toFixed(1) ?? '?'}s
-                                                    </p>
-                                                )}
-                                                <div className="mt-2">
-                                                    <label className="flex items-center gap-2 text-xs">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={videoLoop}
-                                                            onChange={(e) => setVideoLoop(e.target.checked)}
-                                                            className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
-                                                        />
-                                                        Lặp lại video (Loop)
-                                                    </label>
-                                                </div>
-                                            </>
-                                        )}
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={1}
+                                            step={0.05}
+                                            value={backgroundDim}
+                                            onChange={(e) => setBackgroundDim(Number(e.target.value))}
+                                            className="w-full accent-primary h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
+                                        />
                                     </div>
-                                )}
-                            </section>
 
-                            <div className="border-t border-zinc-800" />
+                                    {backgroundType === 'video' && (
+                                        <div className="p-3 bg-secondary/20 rounded-lg border border-border space-y-3">
+                                            <div>
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span className="text-muted-foreground">Bắt đầu từ (s)</span>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    max={videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0}
+                                                    step={0.1}
+                                                    value={backgroundVideoStartTime}
+                                                    onChange={(e) => setBackgroundVideoStartTime(e.target.value)}
+                                                    onBlur={() => {
+                                                        let val = Number(backgroundVideoStartTime);
+                                                        if (isNaN(val) || val < 0) val = 0;
+                                                        const max = videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0;
+                                                        if (val > max) val = max;
+                                                        setBackgroundVideoStartTime(val);
+                                                    }}
+                                                    className="w-full bg-background p-1.5 rounded border border-border text-sm"
+                                                    disabled={!videoDurationSec}
+                                                />
+                                            </div>
 
-                            <section>
-                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Phụ đề</h2>
-                                <div className="flex items-center gap-4 mb-2">
-                                    <label className="text-xs flex items-center gap-2">
-                                        Màu đã hát
+                                            <label className="flex items-center gap-2 text-xs">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={videoLoop}
+                                                    onChange={(e) => setVideoLoop(e.target.checked)}
+                                                    className="rounded border-border bg-background text-primary focus:ring-ring"
+                                                />
+                                                Lặp lại video (Loop)
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </section>
+
+                        <div className="h-px bg-border my-2" />
+
+                        {/* Typography Section */}
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <Type className="w-4 h-4 text-muted-foreground" />
+                                Typography
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className="space-y-1.5">
+                                    <span className="text-xs text-muted-foreground">Màu đã hát</span>
+                                    <div className="flex items-center gap-2 p-1 bg-secondary/50 border border-border rounded-lg">
                                         <input
                                             type="color"
                                             value={sungColor}
                                             onChange={(e) => setSungColor(e.target.value)}
-                                            className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                                            className="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0"
                                         />
-                                    </label>
-                                    <label className="text-xs flex items-center gap-2">
-                                        Màu chưa hát
+                                        <span className="text-xs font-mono uppercase">{sungColor}</span>
+                                    </div>
+                                </label>
+                                <label className="space-y-1.5">
+                                    <span className="text-xs text-muted-foreground">Màu chưa hát</span>
+                                    <div className="flex items-center gap-2 p-1 bg-secondary/50 border border-border rounded-lg">
                                         <input
                                             type="color"
                                             value={unsungColor}
                                             onChange={(e) => setUnsungColor(e.target.value)}
-                                            className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                                            className="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0"
                                         />
-                                    </label>
-                                </div>
-                                <label className="text-xs flex flex-col gap-1">
-                                    Cỡ chữ (px)
+                                        <span className="text-xs font-mono uppercase">{unsungColor}</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <span className="text-xs text-muted-foreground">Font chữ</span>
+                                <select
+                                    value={fontFamily}
+                                    onChange={(e) => setFontFamily(e.target.value)}
+                                    className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
+                                >
+                                    <option value="Roboto">Roboto</option>
+                                    <option value="Inter Tight">Inter Tight</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Times New Roman">Times</option>
+                                    <option value="Lora">Lora</option>
+                                    <option value="Montserrat">Montserrat</option>
+                                    <option value="Oswald">Oswald</option>
+                                    <option value="Playfair Display">Playfair Display</option>
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1.5">
+                                    <span className="text-xs text-muted-foreground">Cỡ chữ (px)</span>
                                     <input
                                         type="number"
                                         min={24}
                                         max={120}
                                         value={fontSize}
                                         onChange={(e) => setFontSize(e.target.value)}
-                                        onBlur={() => {
-                                            let val = Number(fontSize);
-                                            if (isNaN(val) || val < 24) val = 24;
-                                            if (val > 120) val = 120;
-                                            setFontSize(val);
-                                        }}
-                                        className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
+                                        className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
                                     />
-                                </label>
-
-                                <label className="text-xs flex flex-col gap-1 mt-2">
-                                    Font chữ
-                                    <select
-                                        value={fontFamily}
-                                        onChange={(e) => setFontFamily(e.target.value)}
-                                        className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
-                                    >
-                                        <option value="Roboto">Roboto (Mặc định)</option>
-                                        <option value="Inter Tight">Inter Tight</option>
-                                        <option value="Arial">Arial</option>
-                                        <option value="Times New Roman">Times New Roman</option>
-                                        <option value="Lora">Lora (Serif)</option>
-                                        <option value="Montserrat">Montserrat</option>
-                                        <option value="Oswald">Oswald</option>
-                                        <option value="Playfair Display">Playfair Display (Serif)</option>
-                                    </select>
-                                </label>
-
-                                <div className="mt-4">
-                                    <label className="flex items-center gap-2 text-xs mb-2">
+                                </div>
+                                <div className="flex items-end pb-2">
+                                    <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
                                         <input
                                             type="checkbox"
                                             checked={enableShadow}
                                             onChange={(e) => setEnableShadow(e.target.checked)}
-                                            className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                            className="rounded border-border bg-background text-primary"
                                         />
-                                        Bật đổ bóng (Drop Shadow)
+                                        Drop Shadow
                                     </label>
                                 </div>
+                            </div>
 
-                                <div className="mt-4 border-t border-zinc-800 pt-4">
-                                    <h3 className="text-xs font-bold text-zinc-500 mb-2 uppercase">Bố cục lời</h3>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="flex items-center gap-2 text-xs cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="lyricsLayout"
-                                                value="traditional"
-                                                checked={lyricsLayout === 'traditional'}
-                                                onChange={() => setLyricsLayout('traditional')}
-                                                className="accent-green-500"
-                                            />
-                                            Truyền thống (Trái/Phải - Dưới)
-                                        </label>
-                                        <label className="flex items-center gap-2 text-xs cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="lyricsLayout"
-                                                value="bottom"
-                                                checked={lyricsLayout === 'bottom'}
-                                                onChange={() => setLyricsLayout('bottom')}
-                                                className="accent-green-500"
-                                            />
-                                            Căn dưới (Giữa)
-                                        </label>
-                                    </div>
+                            <div className="space-y-1.5 pt-2">
+                                <span className="text-xs text-muted-foreground">Bố cục lời</span>
+                                <div className="flex bg-secondary/50 p-1 rounded-lg border border-border">
+                                    <button
+                                        onClick={() => setLyricsLayout('traditional')}
+                                        className={`flex-1 text-xs py-1.5 rounded-md transition-all ${lyricsLayout === 'traditional' ? 'bg-background shadow text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    >
+                                        Truyền thống
+                                    </button>
+                                    <button
+                                        onClick={() => setLyricsLayout('bottom')}
+                                        className={`flex-1 text-xs py-1.5 rounded-md transition-all ${lyricsLayout === 'bottom' ? 'bg-background shadow text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                    >
+                                        Căn giữa
+                                    </button>
                                 </div>
-                            </section>
+                            </div>
+                        </section>
 
-                            <div className="border-t border-zinc-800" />
-
-                            <section>
-                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Render Setting</h2>
-                                <div>
-                                    <div className="flex justify-between text-xs mb-1">
-                                        <span>CRF - Thấp hơn là nét hơn</span>
-                                        <span>{crf}</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min={10}
-                                        max={40}
-                                        step={1}
-                                        value={crf}
-                                        onChange={(e) => setCrf(Number(e.target.value))}
-                                        className="w-full accent-green-500"
-                                    />
-                                    <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
-                                        <span>10 (Nét)</span>
-                                        <span>40 (Nhẹ)</span>
-                                    </div>
-                                </div>
-                                <div className="mt-4">
-                                    <label className="flex items-center gap-2 text-xs">
-                                        <input
-                                            type="checkbox"
-                                            checked={renderSample}
-                                            onChange={(e) => setRenderSample(e.target.checked)}
-                                            className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
-                                        />
-                                        Render mẫu (30s đầu)
-                                    </label>
-                                </div>
-                            </section>
-                        </div>
                     </div>
                 </aside>
 
-                <div className="flex-1 flex flex-col min-w-0 overflow-hidden gap-4">
-                    <div className="flex-1 flex justify-center bg-black/50 rounded-xl border border-zinc-800 overflow-hidden relative min-h-0">
-                        {/* Player Container */}
-                        {currentAudioSrc ? (
-                            <div className="h-full aspect-video">
+                {/* Center - Player Preview */}
+                <main className="col-start-2 row-start-1 bg-secondary/20 flex flex-col min-w-0 overflow-hidden relative">
+                    <div className="flex-1 p-8 flex items-center justify-center overflow-hidden">
+                        <div className="aspect-video h-full max-h-full bg-black shadow-2xl rounded-lg overflow-hidden border border-border/50 relative group">
+                            {currentAudioSrc ? (
                                 <Player
                                     acknowledgeRemotionLicense
                                     ref={setPlayerCallback}
@@ -940,85 +958,51 @@ export default function EditorPage() {
                                     style={{ width: '100%', height: '100%' }}
                                     controls
                                     loop
+                                    className="w-full h-full"
                                 />
-                            </div>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-500">
-                                Chọn file âm thanh để xem trước
-                            </div>
-                        )}
-                    </div>
-
-                    <section className="h-auto flex-shrink-0 bg-zinc-900 rounded-xl border border-zinc-800 flex flex-col overflow-hidden">
-                        <div className="flex-shrink-0 p-4 border-b border-zinc-800 flex justify-between items-center">
-                            <div className="flex items-center gap-4">
-                                <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Timeline Editor</h2>
-
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={handleZoomOut} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">-</button>
-                                <span className="text-xs text-zinc-500 min-w-[60px] text-center">Zoom: {Math.round(zoom)}</span>
-                                <button onClick={handleZoomIn} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">+</button>
-
-                                <button
-                                    onClick={() => addCaption()}
-                                    className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold"
-                                >
-                                    + Thêm Sub
-                                </button>
-
-                                {selectedIndexes.length > 0 ? (
-                                    <button
-                                        onClick={handleClearCaptions}
-                                        className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold flex items-center gap-1"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Xóa ({selectedIndexes.length})
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleClearCaptions}
-                                        className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold flex items-center gap-1"
-                                        title="Xóa tất cả phụ đề"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Xóa hết
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex-1 relative overflow-hidden flex flex-col">
-                            {timelineWarning && (
-                                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 bg-red-500/90 text-white px-3 py-1 rounded text-xs font-bold shadow-lg animate-fade-in-down pointer-events-none">
-                                    {timelineWarning}
+                            ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                                    <Music className="w-16 h-16 mb-4 opacity-20" />
+                                    <p>Chọn file âm thanh để bắt đầu</p>
                                 </div>
                             )}
-                            {/* Timeline Component */}
-                            <div className="flex-1 overflow-hidden">
-                                <Timeline
-                                    audioUrl={currentAudioSrc}
-                                    captions={captions}
-                                    player={player}
-                                    duration={audioDurationSec || 30}
-                                    selectedIndexes={selectedIndexes}
-                                    onSelect={setSelectedIndexes}
-                                    onUpdateCaption={(index, newCaption) => {
-                                        setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
-                                    }}
-                                    zoom={zoom}
-                                    onZoom={handleSetZoom}
+                        </div>
+                    </div>
+
+                    {/* Render Options Quick Bar */}
+                    <div className="flex-shrink-0 px-6 py-2 bg-card border-t border-border flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-4">
+                            <span className="text-muted-foreground font-medium uppercase tracking-wider">Render Settings:</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">CRF: {crf}</span>
+                                <input
+                                    type="range"
+                                    min={10}
+                                    max={40}
+                                    step={1}
+                                    value={crf}
+                                    onChange={(e) => setCrf(Number(e.target.value))}
+                                    className="w-24 accent-primary h-1 bg-secondary rounded cursor-pointer"
                                 />
                             </div>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={renderSample}
+                                    onChange={(e) => setRenderSample(e.target.checked)}
+                                    className="rounded border-border bg-background text-primary"
+                                />
+                                Preview (30s)
+                            </label>
                         </div>
-                    </section>
-                </div >
+                        <div className="text-muted-foreground">
+                            {WIDTH}x{HEIGHT} • {FPS}fps
+                        </div>
+                    </div>
+                </main>
 
-                <div className="w-80 flex-shrink-0 h-full flex flex-col">
+                {/* Right Sidebar - Subtitles */}
+                <aside className="col-start-3 row-start-1 row-span-2 bg-card border-l border-border flex flex-col w-full h-full overflow-hidden z-10">
                     <SubtitleSidebar
                         captions={captions}
                         onUpdateCaption={handleUpdateCaptionText}
@@ -1026,8 +1010,80 @@ export default function EditorPage() {
                         onImportSrt={handleSrtFile}
                         onExportSrt={handleExportSrt}
                     />
-                </div>
-            </div >
+                </aside>
+
+                {/* Bottom - Timeline */}
+                <section className="col-span-2 row-start-2 h-[280px] bg-card border-t border-border flex flex-col z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+                    <div className="flex-shrink-0 px-4 py-2 border-b border-border flex justify-between items-center bg-secondary/10">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                <Layers className="w-3 h-3" /> Timeline
+                            </h2>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center bg-secondary rounded-lg border border-border overflow-hidden">
+                                <button onClick={handleZoomOut} className="px-3 py-1 text-xs hover:bg-background transition-colors">-</button>
+                                <span className="text-[10px] px-2 text-muted-foreground font-mono border-x border-border min-w-[60px] text-center">
+                                    {(zoom / FPS).toFixed(1)}x
+                                </span>
+                                <button onClick={handleZoomIn} className="px-3 py-1 text-xs hover:bg-background transition-colors">+</button>
+                            </div>
+
+                            <div className="h-4 w-px bg-border mx-2" />
+
+                            <button
+                                onClick={() => addCaption()}
+                                className="px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-xs font-medium transition-all"
+                            >
+                                + Thêm Sub
+                            </button>
+
+                            {selectedIndexes.length > 0 ? (
+                                <button
+                                    onClick={handleClearCaptions}
+                                    className="px-3 py-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md text-xs font-medium transition-all"
+                                >
+                                    Xóa ({selectedIndexes.length})
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleClearCaptions}
+                                    className="px-3 py-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md text-xs transition-all"
+                                    title="Xóa tất cả"
+                                >
+                                    Xóa hết
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 relative overflow-hidden flex flex-col bg-background/50">
+                        {timelineWarning && (
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-xs font-bold shadow-lg animate-in fade-in slide-in-from-top-2 pointer-events-none flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                {timelineWarning}
+                            </div>
+                        )}
+                        <div className="flex-1 overflow-hidden">
+                            <Timeline
+                                audioUrl={currentAudioSrc}
+                                captions={captions}
+                                player={player}
+                                duration={audioDurationSec || 30}
+                                selectedIndexes={selectedIndexes}
+                                onSelect={setSelectedIndexes}
+                                onUpdateCaption={(index, newCaption) => {
+                                    setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
+                                }}
+                                zoom={zoom}
+                                onZoom={handleSetZoom}
+                            />
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div >
     );
 }
+

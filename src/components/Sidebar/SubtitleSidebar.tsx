@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { KaraokeCaption } from '../../types/karaoke';
 import { PlayerRef } from '@remotion/player';
+import { Upload, Download, List, Clock, Edit2 } from 'lucide-react';
 
 interface SubtitleSidebarProps {
     captions: KaraokeCaption[];
@@ -109,35 +110,35 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
         }
     };
 
+
+
     return (
-        <div className="flex flex-col h-full bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-            <div className="p-4 border-b border-zinc-800 bg-zinc-900/50 flex-shrink-0 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Phụ đề ({captions.length})</h3>
-                <div className="flex items-center gap-2">
-                    <label className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white cursor-pointer" title="Nhập SRT">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
+        <div className="flex flex-col h-full bg-card min-h-0 w-full overflow-hidden">
+            <div className="p-4 border-b border-border flex-shrink-0 flex justify-between items-center bg-secondary/10">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <List className="w-3 h-3" /> Phụ đề ({captions.length})
+                </h3>
+                <div className="flex items-center gap-1">
+                    <label className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors" title="Nhập SRT">
+                        <Upload className="w-4 h-4" />
                         <input type="file" accept=".srt,.ass,text/plain" onChange={onImportSrt} className="hidden" />
                     </label>
                     <button
                         onClick={onExportSrt}
-                        className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white"
+                        className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
                         title="Xuất SRT"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
+                        <Download className="w-4 h-4" />
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar bg-background/50">
                 {captions.length === 0 ? (
-                    <div className="text-center text-zinc-500 py-8 text-sm">
-                        Chưa có phụ đề nào.
-                        <br />
-                        Thêm phụ đề từ Timeline hoặc nhập file SRT.
+                    <div className="flex flex-col items-center justify-center text-muted-foreground/50 py-12 text-sm text-center px-4">
+                        <List className="w-12 h-12 mb-3 opacity-20" />
+                        <p>Chưa có phụ đề nào.</p>
+                        <p className="text-xs mt-1">Thêm từ Timeline hoặc nhập file SRT.</p>
                     </div>
                 ) : (
                     captions.map((cap, index) => {
@@ -148,43 +149,47 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                             <div
                                 key={index}
                                 id={`subtitle-item-${index}`}
-                                className={`p-3 rounded-lg border transition-all ${isCurrent ? 'bg-zinc-800 border-green-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                                className={`p-3 rounded-lg border transition-all relative group ${isCurrent
+                                    ? 'bg-secondary/80 border-primary/50 shadow-sm'
+                                    : 'bg-card border-border hover:border-border/80 hover:bg-secondary/30'
                                     }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onSeek(cap.startMs); }}
-                                        className="text-xs font-mono text-cyan-500 hover:text-cyan-400 bg-cyan-950/30 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                                        className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer hover:bg-primary/20 transition-colors flex items-center gap-1"
                                         title="Click để nhảy đến thời gian này"
                                     >
+                                        <Clock className="w-3 h-3" />
                                         {formatTime(cap.startMs)}
                                     </button>
-                                    <span className="text-[10px] text-zinc-600">#{index + 1}</span>
+                                    <span className="text-[10px] text-muted-foreground font-medium">#{index + 1}</span>
                                 </div>
 
                                 {isEditing ? (
-                                    <div className="relative">
+                                    <div className="relative animate-in fade-in zoom-in-95 duration-200">
                                         <textarea
                                             ref={inputRef}
                                             value={editText}
                                             onChange={(e) => setEditText(e.target.value)}
                                             onKeyDown={handleKeyDown}
                                             onBlur={handleSave}
-                                            className="w-full bg-black text-white p-2 rounded border border-blue-500 text-sm focus:outline-none min-h-[60px] resize-y"
+                                            className="w-full bg-input text-foreground p-2 rounded-md border border-ring/50 text-sm focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px] resize-y"
                                             placeholder="Nhập nội dung phụ đề..."
                                         />
-                                        <div className="text-[10px] text-zinc-500 mt-1 flex justify-between">
+                                        <div className="text-[10px] text-muted-foreground mt-1 flex justify-between px-1">
                                             <span>Enter để lưu</span>
-                                            <span>Esc để hủy</span>
+                                            <span className="text-destructive cursor-pointer hover:underline" onClick={handleCancel}>Hủy (Esc)</span>
                                         </div>
                                     </div>
                                 ) : (
                                     <div
                                         onClick={(e) => { e.stopPropagation(); handleStartEdit(index, cap.text); }}
-                                        className="text-sm text-zinc-300 hover:text-white cursor-pointer hover:bg-zinc-800/50 p-1 -m-1 rounded transition-colors break-words whitespace-pre-wrap"
+                                        className="text-sm text-foreground/90 hover:text-foreground cursor-pointer hover:bg-secondary/50 p-1.5 -m-1.5 rounded transition-colors break-words whitespace-pre-wrap relative"
                                         title="Click để sửa nội dung"
                                     >
-                                        {cap.text || <span className="text-zinc-600 italic">Trống</span>}
+                                        {cap.text || <span className="text-muted-foreground italic opacity-50">Trống</span>}
+                                        <Edit2 className="w-3 h-3 absolute top-2 right-2 opacity-0 group-hover:opacity-50 transition-opacity text-muted-foreground" />
                                     </div>
                                 )}
                             </div>

@@ -85,8 +85,8 @@ const SubtitleClip: React.FC<SubtitleClipProps> = ({
         <div
             className={`absolute h-12 rounded border text-xs overflow-hidden select-none cursor-pointer flex flex-col justify-center px-2
                 ${isSelected
-                    ? 'bg-blue-600/50 border-blue-400 text-white z-10'
-                    : 'bg-zinc-700/50 border-zinc-600 text-zinc-300 hover:bg-zinc-600/50'}`}
+                    ? 'bg-primary/80 border-primary text-primary-foreground z-10 shadow-sm'
+                    : 'bg-secondary/50 border-border text-muted-foreground hover:bg-secondary/80 hover:text-foreground'}`}
             style={{
                 left: `${left}px`,
                 top: `${top}px`,

@@ -12,14 +12,25 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { ThemeProvider } from "../components/theme-provider";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-background" suppressHydrationWarning>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

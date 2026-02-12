@@ -24,8 +24,8 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({
 
         const wavesurfer = WaveSurfer.create({
             container: containerRef.current,
-            waveColor: '#52525b', // zinc-600
-            progressColor: '#52525b', // Same color, we handle progress elsewhere
+            waveColor: 'hsl(var(--muted-foreground))',
+            progressColor: 'hsl(var(--primary))',
             cursorColor: 'transparent',
             barWidth: 2,
             barGap: 1,
