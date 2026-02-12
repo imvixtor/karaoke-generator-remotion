@@ -641,7 +641,7 @@ export default function EditorPage() {
                         <Music className="w-6 h-6" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
+                        <h1 className="text-xl font-bold text-primary">
                             Karaoke Generator
                         </h1>
                         <p className="text-muted-foreground text-xs">Studio Edition</p>
@@ -786,7 +786,7 @@ export default function EditorPage() {
 
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-muted-foreground">Độ tối nền</span>
+                                            <span className="text-muted-foreground">Độ mờ nền</span>
                                             <span className="font-mono">{Math.round(backgroundDim * 100)}%</span>
                                         </div>
                                         <input
@@ -881,7 +881,7 @@ export default function EditorPage() {
                                 <select
                                     value={fontFamily}
                                     onChange={(e) => setFontFamily(e.target.value)}
-                                    className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
+                                    className="w-full bg-input text-foreground border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                                 >
                                     <option value="Roboto">Roboto</option>
                                     <option value="Inter Tight">Inter Tight</option>
@@ -1049,7 +1049,7 @@ export default function EditorPage() {
                             ) : (
                                 <button
                                     onClick={handleClearCaptions}
-                                    className="px-3 py-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md text-xs transition-all"
+                                    className="px-3 py-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md text-xs font-medium transition-all"
                                     title="Xóa tất cả"
                                 >
                                     Xóa hết

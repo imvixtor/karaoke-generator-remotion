@@ -113,7 +113,7 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
 
 
     return (
-        <div className="flex flex-col h-full bg-card min-h-0 w-full overflow-hidden">
+        <div className="flex flex-col h-full bg-card min-h-0 w-full overflow-hidden border-l border-border">
             <div className="p-4 border-b border-border flex-shrink-0 flex justify-between items-center bg-secondary/10">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                     <List className="w-3 h-3" /> Phụ đề ({captions.length})
@@ -150,7 +150,7 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                                 key={index}
                                 id={`subtitle-item-${index}`}
                                 className={`p-3 rounded-lg border transition-all relative group ${isCurrent
-                                    ? 'bg-secondary/80 border-primary/50 shadow-sm'
+                                    ? 'bg-primary/10 border-primary/50 shadow-sm'
                                     : 'bg-card border-border hover:border-border/80 hover:bg-secondary/30'
                                     }`}
                             >

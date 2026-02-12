@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
+import { useTheme } from 'next-themes';
 
 interface AudioWaveformProps {
     audioUrl: string | null;
@@ -12,6 +13,7 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
+    const { resolvedTheme } = useTheme();
 
     useEffect(() => {
         if (!containerRef.current || !audioUrl) return;
@@ -24,8 +26,8 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({
 
         const wavesurfer = WaveSurfer.create({
             container: containerRef.current,
-            waveColor: 'hsl(var(--muted-foreground))',
-            progressColor: 'hsl(var(--primary))',
+            waveColor: resolvedTheme === 'dark' ? '#cbd5e1' : '#475569', // Slate-300 (dark mode) / Slate-600 (light mode)
+            progressColor: '#16a34a', // Primary Green
             cursorColor: 'transparent',
             barWidth: 2,
             barGap: 1,
@@ -54,7 +56,7 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({
                 wavesurferRef.current = null;
             }
         };
-    }, [audioUrl]);
+    }, [audioUrl, resolvedTheme]);
 
     // Update zoom with debounce
     useEffect(() => {

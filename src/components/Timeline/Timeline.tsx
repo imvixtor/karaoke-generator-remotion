@@ -201,9 +201,9 @@ const Timeline: React.FC<TimelineProps> = ({
                     {/* Tracks */}
                     <div className="relative flex-1 min-h-[200px]">
                         {/* Audio Waveform Track */}
-                        <div className="h-20 border-b border-border relative bg-secondary/10 overflow-hidden group">
+                        <div className="h-20 border-b border-border relative bg-secondary/10 overflow-hidden group flex items-center">
                             <AudioWaveform audioUrl={audioUrl} zoom={zoom} />
-                            <div className="absolute top-1 left-2 text-[10px] uppercase font-bold text-muted-foreground group-hover:text-foreground transition-colors pointer-events-none bg-background/50 px-1 rounded">Audio</div>
+                            <div className="absolute top-1 left-2 text-[10px] uppercase font-bold text-muted-foreground group-hover:text-foreground transition-colors pointer-events-none bg-background/50 px-1 rounded z-10">Audio</div>
                         </div>
 
                         {/* Subtitle Track */}
