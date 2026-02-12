@@ -135,10 +135,17 @@ const Timeline: React.FC<TimelineProps> = ({
 
                 const timeAtCursor = contentX / zoom;
 
-                // Multiplicative zoom for smoother feel
-                // Sensitivity: 0.001 * deltaY
-                const scale = Math.exp(-e.deltaY * 0.002);
-                const newZoom = Math.max(10, Math.min(200, zoom * scale));
+                // Linear zoom with fixed steps logic
+                // Standard mouse wheel delta is ~100. We want that to correspond to a step of 10.
+                // Trackpads produce smaller deltas, which will result in proportional smaller steps.
+                const zoomFactor = 0.1;
+                let newZoom = zoom - (e.deltaY * zoomFactor);
+
+                // Clamp
+                newZoom = Math.max(10, Math.min(200, newZoom));
+
+                // Round to nearest integer to avoid messy decimals
+                newZoom = Math.round(newZoom);
 
                 if (newZoom !== zoom) {
                     // Calculate expected new scrollLeft to keep timeAtCursor under mouseX
