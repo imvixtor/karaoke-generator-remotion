@@ -9,7 +9,7 @@ import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
 import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
-import { Moon, Sun, Monitor, Download, X, Film, Music, Type, Settings, Layers, Image as ImageIcon, FileText } from 'lucide-react';
+import { Upload, Download, Play, Pause, Save, Settings, Layers, Type, Music, Image as ImageIcon, Video, FileText, Plus, X, Trash2, Moon, Sun, Monitor, Film } from 'lucide-react';
 import { useTheme } from "next-themes";
 
 const STORAGE_KEY = 'karaoke-editor-data';
@@ -739,14 +739,30 @@ export default function EditorPage() {
                                 File Âm thanh
                             </div>
 
-                            <div className="card-input-wrapper">
-                                <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1" />
-                            </div>
-                            {(audioFileName || audioFile) && (
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 bg-secondary/30 p-2 rounded">
-                                    <FileText className="w-3 h-3" />
-                                    <span className="truncate">{audioFileName ?? audioFile?.name}</span>
-                                </p>
+                            {audioFile || audioUrl ? (
+                                <div className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border group">
+                                    <div className="flex items-center gap-2 truncate overflow-hidden">
+                                        <Music className="w-4 h-4 text-muted-foreground shrink-0" />
+                                        <span className="text-xs truncate flex-1" title={audioFileName ?? 'Audio File'}>
+                                            {audioFileName ?? 'Audio File'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setAudioFile(null);
+                                            setAudioFileName(null);
+                                            setAudioUrl(null);
+                                        }}
+                                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                        title="Xóa file"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="card-input-wrapper">
+                                    <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1" />
+                                </div>
                             )}
                         </section>
 
@@ -771,17 +787,37 @@ export default function EditorPage() {
 
                             {(backgroundType === 'image' || backgroundType === 'video') && (
                                 <div className="space-y-4 animate-accordion-down">
-                                    <input
-                                        type="file"
-                                        accept={backgroundType === 'image' ? 'image/*' : 'video/*'}
-                                        onChange={handleBackgroundFile}
-                                        className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1"
-                                    />
-                                    {(backgroundFileName || backgroundFile) && (
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1 bg-secondary/30 p-2 rounded">
-                                            <FileText className="w-3 h-3" />
-                                            <span className="truncate">{backgroundFileName ?? backgroundFile?.name}</span>
-                                        </p>
+                                    {backgroundFile || backgroundUrl ? (
+                                        <div className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border group gap-2">
+                                            <div className="flex items-center gap-2 truncate overflow-hidden">
+                                                {backgroundType === 'image' ? (
+                                                    <ImageIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                ) : (
+                                                    <Video className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                )}
+                                                <span className="text-xs truncate flex-1" title={backgroundFileName ?? 'Media File'}>
+                                                    {backgroundFileName ?? 'Media File'}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setBackgroundFile(null);
+                                                    setBackgroundFileName(null);
+                                                    setBackgroundUrl(null);
+                                                }}
+                                                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                                title="Xóa file"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="file"
+                                            accept={backgroundType === 'image' ? 'image/*' : 'video/*'}
+                                            onChange={handleBackgroundFile}
+                                            className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1"
+                                        />
                                     )}
 
                                     <div className="space-y-1.5">
