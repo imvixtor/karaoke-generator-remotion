@@ -85,40 +85,46 @@ function KaraokeSubtitleLine({
                 willChange: 'opacity, transform',
             }}
         >
-            {caption.segments && caption.segments.length > 0 ? (
-                <span style={{ color: unsungColor }}>
-                    {caption.segments.map((seg, idx) => {
-                        const segProgress =
-                            seg.endMs <= seg.startMs
-                                ? 1
-                                : Math.min(
-                                    1,
-                                    Math.max(0, (frameMs - seg.startMs) / (seg.endMs - seg.startMs))
+            {useMemo(() => {
+                if (caption.segments && caption.segments.length > 0) {
+                    return (
+                        <span style={{ color: unsungColor }}>
+                            {caption.segments.map((seg, idx) => {
+                                const segProgress =
+                                    seg.endMs <= seg.startMs
+                                        ? 1
+                                        : Math.min(
+                                            1,
+                                            Math.max(0, (frameMs - seg.startMs) / (seg.endMs - seg.startMs))
+                                        );
+                                const isSegSung = segProgress >= 1;
+                                return (
+                                    <span
+                                        key={idx}
+                                        style={{ color: isSegSung ? sungColor : unsungColor, marginRight: 4 }}
+                                    >
+                                        {seg.text}
+                                    </span>
                                 );
-                        const isSegSung = segProgress >= 1;
-                        return (
-                            <span
-                                key={idx}
-                                style={{ color: isSegSung ? sungColor : unsungColor, marginRight: 4 }}
-                            >
-                                {seg.text}
-                            </span>
-                        );
-                    })}
-                </span>
-            ) : (
-                <span style={{ color: unsungColor }}>
-                    {text.split('').map((char, i) => {
-                        const charProgress = (i + 1) / text.length;
-                        const isSung = progress >= charProgress;
-                        return (
-                            <span key={i} style={{ color: isSung ? sungColor : unsungColor }}>
-                                {char}
-                            </span>
-                        );
-                    })}
-                </span>
-            )}
+                            })}
+                        </span>
+                    );
+                }
+
+                return (
+                    <span style={{ color: unsungColor }}>
+                        {text.split('').map((char, i) => {
+                            const charProgress = (i + 1) / text.length;
+                            const isSung = progress >= charProgress;
+                            return (
+                                <span key={i} style={{ color: isSung ? sungColor : unsungColor }}>
+                                    {char}
+                                </span>
+                            );
+                        })}
+                    </span>
+                );
+            }, [caption.segments, caption.text, unsungColor, sungColor, frameMs, progress, text])}
         </div>
     );
 }
@@ -142,7 +148,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     videoLoop = false,
     renderForegroundOnly = false,
 }) => {
-    console.log(`[KaraokeComposition] renderForegroundOnly: ${renderForegroundOnly}, backgroundType: ${backgroundType}`);
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
     const { durationInFrames } = useVideoConfig();

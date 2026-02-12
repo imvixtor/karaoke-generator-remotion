@@ -11,10 +11,12 @@ const renderProgress: Record<string, { progress: number; status: string; filenam
 // Store cancel functions for cancellation
 const renderCancels: Record<string, () => void> = {};
 
+import { KaraokeCompositionProps } from "../../../types/karaoke";
+
 export async function POST(request: NextRequest) {
     const renderId = uuidv4();
     const body = await request.json();
-    let inputProps: any;
+    let inputProps: KaraokeCompositionProps;
     let options: { crf?: number; renderSample?: boolean } = {};
 
     // Check if the body has inputProps and options structure or just inputProps (legacy)

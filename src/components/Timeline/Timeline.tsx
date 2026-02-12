@@ -86,8 +86,6 @@ const Timeline: React.FC<TimelineProps> = ({
         onSeek(time);
         onSelect([]); // Deselect all when clicking empty space
 
-        onSelect([]); // Deselect all when clicking empty space
-
         const handleMouseMove = (moveEvent: MouseEvent) => {
             if (!scrollContainerRef.current) return;
             const moveRect = scrollContainerRef.current.getBoundingClientRect();
@@ -187,16 +185,18 @@ const Timeline: React.FC<TimelineProps> = ({
             >
                 <div style={{ width: `${Math.max(totalWidth, scrollContainerRef.current?.clientWidth || 0)}px`, position: 'relative', minHeight: '100%' }}>
                     {/* Ruler */}
-                    <div className="h-6 border-b border-zinc-800 flex relative text-[10px] text-zinc-500 bg-zinc-900/50 select-none pointer-events-none">
-                        {Array.from({ length: Math.ceil(duration) }).map((_, sec) => {
-                            if (sec % 5 !== 0) return null; // Show every 5s
-                            return (
-                                <div key={sec} className="absolute top-0 bottom-0 border-l border-zinc-700 pl-1" style={{ left: `${sec * zoom}px` }}>
-                                    {sec}s
-                                </div>
-                            );
-                        })}
-                    </div>
+                    {React.useMemo(() => (
+                        <div className="h-6 border-b border-zinc-800 flex relative text-[10px] text-zinc-500 bg-zinc-900/50 select-none pointer-events-none">
+                            {Array.from({ length: Math.ceil(duration) }).map((_, sec) => {
+                                if (sec % 5 !== 0) return null; // Show every 5s
+                                return (
+                                    <div key={sec} className="absolute top-0 bottom-0 border-l border-zinc-700 pl-1" style={{ left: `${sec * zoom}px` }}>
+                                        {sec}s
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ), [duration, zoom])}
 
                     {/* Tracks */}
                     <div className="relative min-h-full">
