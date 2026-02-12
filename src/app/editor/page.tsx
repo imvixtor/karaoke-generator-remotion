@@ -368,11 +368,12 @@ export default function EditorPage() {
             confidence: 1,
         };
 
-        setCaptions((prev) => [...prev, newCaption]);
+        const newCaptions = [...captions, newCaption].sort((a, b) => a.startMs - b.startMs);
+        setCaptions(newCaptions);
+
         // Auto select new caption
-        // We need to know the index in the UNSORTED array if we want to select it by index
-        // But since we append, it will be the last index.
-        setSelectedIndexes([captions.length]);
+        const newIndex = newCaptions.indexOf(newCaption);
+        setSelectedIndexes([newIndex]);
 
     }, [captions, audioDurationSec]);
 
@@ -1117,7 +1118,10 @@ export default function EditorPage() {
                                 selectedIndexes={selectedIndexes}
                                 onSelect={setSelectedIndexes}
                                 onUpdateCaption={(index, newCaption) => {
-                                    setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
+                                    setCaptions(prev => {
+                                        const updated = prev.map((c, i) => i === index ? newCaption : c);
+                                        return updated.sort((a, b) => a.startMs - b.startMs);
+                                    });
                                 }}
                                 zoom={zoom}
                                 onZoom={handleSetZoom}
