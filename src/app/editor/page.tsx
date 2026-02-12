@@ -108,6 +108,12 @@ export default function EditorPage() {
         ));
     }, []);
 
+    const handleDeleteCaption = useCallback((index: number) => {
+        setCaptions(prev => prev.filter((_, i) => i !== index));
+        // Clear selection if deleted
+        setSelectedIndexes(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
+    }, []);
+
     // Zoom constraints
     const minZoom = 10;
     const maxZoom = 200;
@@ -1045,6 +1051,7 @@ export default function EditorPage() {
                         player={player}
                         onImportSrt={handleSrtFile}
                         onExportSrt={handleExportSrt}
+                        onDeleteCaption={handleDeleteCaption}
                     />
                 </aside>
 

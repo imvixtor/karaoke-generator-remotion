@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { KaraokeCaption } from '../../types/karaoke';
 import { PlayerRef } from '@remotion/player';
-import { Upload, Download, List, Clock, Edit2 } from 'lucide-react';
+import { Upload, Download, List, Clock, Edit2, Trash2 } from 'lucide-react';
 
 interface SubtitleSidebarProps {
     captions: KaraokeCaption[];
@@ -9,6 +9,7 @@ interface SubtitleSidebarProps {
     player: PlayerRef | null;
     onImportSrt: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onExportSrt: () => void;
+    onDeleteCaption: (index: number) => void;
 }
 
 // Hook to subscribe to player frame updates
@@ -47,6 +48,7 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
     player,
     onImportSrt,
     onExportSrt,
+    onDeleteCaption,
 }) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
@@ -163,7 +165,16 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                                         <Clock className="w-3 h-3" />
                                         {formatTime(cap.startMs)}
                                     </button>
-                                    <span className="text-[10px] text-muted-foreground font-medium">#{index + 1}</span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onDeleteCaption(index); }}
+                                            className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-secondary opacity-0 group-hover:opacity-100"
+                                            title="Xóa phụ đề này"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                        <span className="text-[10px] text-muted-foreground font-medium">#{index + 1}</span>
+                                    </div>
                                 </div>
 
                                 {isEditing ? (
