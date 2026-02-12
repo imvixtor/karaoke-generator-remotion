@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import AudioWaveform from './AudioWaveform';
 import SubtitleTrack from './SubtitleTrack';
 import type { KaraokeCaption } from '../../types/karaoke';
@@ -37,6 +37,7 @@ interface TimelineProps {
     selectedIndexes: number[];
     onSelect: (indexes: number[]) => void;
     zoom: number;
+    onZoom: (newZoom: number) => void;
 }
 
 const Timeline: React.FC<TimelineProps> = ({
@@ -48,8 +49,10 @@ const Timeline: React.FC<TimelineProps> = ({
     selectedIndexes,
     onSelect,
     zoom,
+    onZoom,
 }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const pendingScrollLeft = useRef<number | null>(null);
 
     // FPS constant - assuming 30 as per page.tsx default
     const FPS = 30;
@@ -83,8 +86,7 @@ const Timeline: React.FC<TimelineProps> = ({
         onSeek(time);
         onSelect([]); // Deselect all when clicking empty space
 
-        const startX = e.clientX;
-        const startScrollLeft = scrollContainerRef.current.scrollLeft;
+        onSelect([]); // Deselect all when clicking empty space
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
             if (!scrollContainerRef.current) return;
@@ -116,12 +118,64 @@ const Timeline: React.FC<TimelineProps> = ({
     // Playhead position
     const playheadLeft = currentTime * zoom;
 
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                // Zooming
+                e.preventDefault();
+                e.stopPropagation();
+
+                const rect = container.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const scrollLeft = container.scrollLeft;
+                const contentX = scrollLeft + mouseX;
+
+                const timeAtCursor = contentX / zoom;
+
+                // Multiplicative zoom for smoother feel
+                // Sensitivity: 0.001 * deltaY
+                const scale = Math.exp(-e.deltaY * 0.002);
+                const newZoom = Math.max(10, Math.min(200, zoom * scale));
+
+                if (newZoom !== zoom) {
+                    // Calculate expected new scrollLeft to keep timeAtCursor under mouseX
+                    // newScrollLeft + mouseX = timeAtCursor * newZoom
+                    const newScrollLeft = (timeAtCursor * newZoom) - mouseX;
+                    pendingScrollLeft.current = newScrollLeft;
+                    onZoom(newZoom);
+                }
+            } else {
+                // Horizontal scrolling with vertical wheel
+                if (!e.shiftKey) {
+                    container.scrollLeft += e.deltaY;
+                }
+            }
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+
+        return () => {
+            container.removeEventListener('wheel', handleWheel);
+        };
+    }, [zoom, onZoom]);
+
+    // Restore scroll position after zoom update
+    React.useLayoutEffect(() => {
+        if (pendingScrollLeft.current !== null && scrollContainerRef.current) {
+            scrollContainerRef.current.scrollLeft = pendingScrollLeft.current;
+            pendingScrollLeft.current = null;
+        }
+    }, [zoom]);
+
     return (
-        <div className="flex flex-col bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden h-auto mt-4">
+        <div className="flex flex-col bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden h-auto">
             {/* Scrollable Area */}
             <div
                 ref={scrollContainerRef}
-                className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar"
+                className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar divide-y divide-zinc-800"
                 onMouseDown={handleMouseDown}
             >
                 <div style={{ width: `${Math.max(totalWidth, scrollContainerRef.current?.clientWidth || 0)}px`, position: 'relative', minHeight: '100%' }}>

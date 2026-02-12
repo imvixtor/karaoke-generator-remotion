@@ -105,8 +105,9 @@ export default function EditorPage() {
     const minZoom = 10;
     const maxZoom = 200;
 
-    const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, maxZoom));
-    const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, minZoom));
+    const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, maxZoom));
+    const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, minZoom));
+    const handleSetZoom = (val: number) => setZoom(Math.max(minZoom, Math.min(maxZoom, val)));
 
     // ... (rest of code)
 
@@ -1010,6 +1011,7 @@ export default function EditorPage() {
                                         setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
                                     }}
                                     zoom={zoom}
+                                    onZoom={handleSetZoom}
                                 />
                             </div>
                         </div>

@@ -56,17 +56,20 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({
         };
     }, [audioUrl]);
 
-    // Update zoom
+    // Update zoom with debounce
     useEffect(() => {
-        const ws = wavesurferRef.current;
-        if (ws) {
-            try {
-                ws.zoom(zoom);
-            } catch (e) {
-                // Ignore "No audio loaded" if it happens during init
-                console.warn("WaveSurfer zoom error:", e);
+        const timeoutId = setTimeout(() => {
+            const ws = wavesurferRef.current;
+            if (ws) {
+                try {
+                    ws.zoom(zoom);
+                } catch (e) {
+                    console.warn("WaveSurfer zoom error:", e);
+                }
             }
-        }
+        }, 100); // 100ms debounce
+
+        return () => clearTimeout(timeoutId);
     }, [zoom]);
 
     return (
