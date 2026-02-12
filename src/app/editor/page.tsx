@@ -5,6 +5,7 @@ import { Player, PlayerRef } from '@remotion/player';
 import { KaraokeComposition } from '../../remotion/KaraokeComposition';
 import type { KaraokeCaption, BackgroundType, KaraokeCompositionProps } from '../../types/karaoke';
 import Timeline from '../../components/Timeline/Timeline';
+import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
 import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
@@ -92,6 +93,12 @@ export default function EditorPage() {
             }
         }
     }, [selectedIndexes]);
+
+    const handleUpdateCaptionText = useCallback((index: number, newText: string) => {
+        setCaptions(prev => prev.map((cap, i) =>
+            i === index ? { ...cap, text: newText } : cap
+        ));
+    }, []);
 
     // ... (rest of code)
 
@@ -589,8 +596,8 @@ export default function EditorPage() {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-200 p-8 font-sans">
-            <header className="mb-8 border-b border-zinc-800 pb-6 flex justify-between items-end">
+        <div className="h-screen flex flex-col bg-zinc-950 text-zinc-200 font-sans overflow-hidden">
+            <header className="flex-shrink-0 px-8 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950 z-20">
                 <div>
                     <h1 className="text-3xl font-bold text-green-500 mb-2">
                         Karaoke Generator
@@ -643,250 +650,256 @@ export default function EditorPage() {
                 </div>
             </header>
 
-            <div className="flex flex-wrap gap-8">
-                <aside className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
-                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Âm thanh</h2>
-                        <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-sm bg-zinc-800 p-2 rounded mb-2 border border-zinc-700" />
-                        {(audioFileName || audioFile) && (
-                            <p className="text-xs text-zinc-500 truncate">
-                                {audioFileName ?? audioFile?.name}
-                            </p>
-                        )}
-                    </section>
-
-
-
-                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Nền</h2>
-                        <select
-                            value={backgroundType}
-                            onChange={(e) => setBackgroundType(e.target.value as BackgroundType)}
-                            className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm mb-4"
-                        >
-                            <option value="black">Đen (mặc định)</option>
-                            <option value="image">Hình ảnh</option>
-                            <option value="video">Video</option>
-                        </select>
-                        {(backgroundType === 'image' || backgroundType === 'video') && (
-                            <div className="space-y-4">
-                                <input
-                                    type="file"
-                                    accept={backgroundType === 'image' ? 'image/*' : 'video/*'}
-                                    onChange={handleBackgroundFile}
-                                    className="w-full text-sm bg-zinc-800 p-2 rounded border border-zinc-700"
-                                />
-                                {(backgroundFileName || backgroundFile) && (
+            <div className="flex-1 min-h-0 flex gap-4 p-4 pt-0">
+                <aside className="w-80 flex-shrink-0 flex flex-col h-full">
+                    <div className="flex flex-col h-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                            <section>
+                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Âm thanh</h2>
+                                <input type="file" accept="audio/*" onChange={handleAudioChange} className="w-full text-sm bg-zinc-800 p-2 rounded mb-2 border border-zinc-700" />
+                                {(audioFileName || audioFile) && (
                                     <p className="text-xs text-zinc-500 truncate">
-                                        {backgroundFileName ?? backgroundFile?.name}
+                                        {audioFileName ?? audioFile?.name}
                                     </p>
                                 )}
+                            </section>
 
+                            <div className="border-t border-zinc-800" />
+
+                            <section>
+                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Nền</h2>
+                                <select
+                                    value={backgroundType}
+                                    onChange={(e) => setBackgroundType(e.target.value as BackgroundType)}
+                                    className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm mb-4"
+                                >
+                                    <option value="black">Đen (mặc định)</option>
+                                    <option value="image">Hình ảnh</option>
+                                    <option value="video">Video</option>
+                                </select>
+                                {(backgroundType === 'image' || backgroundType === 'video') && (
+                                    <div className="space-y-4">
+                                        <input
+                                            type="file"
+                                            accept={backgroundType === 'image' ? 'image/*' : 'video/*'}
+                                            onChange={handleBackgroundFile}
+                                            className="w-full text-sm bg-zinc-800 p-2 rounded border border-zinc-700"
+                                        />
+                                        {(backgroundFileName || backgroundFile) && (
+                                            <p className="text-xs text-zinc-500 truncate">
+                                                {backgroundFileName ?? backgroundFile?.name}
+                                            </p>
+                                        )}
+
+                                        <div>
+                                            <div className="flex justify-between text-xs mb-1">
+                                                <span>Độ mờ nền</span>
+                                                <span>{Math.round(backgroundDim * 100)}%</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min={0}
+                                                max={1}
+                                                step={0.05}
+                                                value={backgroundDim}
+                                                onChange={(e) => setBackgroundDim(Number(e.target.value))}
+                                                className="w-full accent-green-500"
+                                            />
+                                        </div>
+
+                                        {backgroundType === 'video' && (
+                                            <>
+                                                <div>
+                                                    <div className="flex justify-between text-xs mb-1">
+                                                        <span>Bắt đầu video từ</span>
+                                                        <span>{Number(backgroundVideoStartTime).toFixed(1)}s</span>
+                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0}
+                                                        step={0.1}
+                                                        value={backgroundVideoStartTime}
+                                                        onChange={(e) => setBackgroundVideoStartTime(e.target.value)}
+                                                        onBlur={() => {
+                                                            let val = Number(backgroundVideoStartTime);
+                                                            if (isNaN(val) || val < 0) val = 0;
+                                                            const max = videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0;
+                                                            if (val > max) val = max;
+                                                            setBackgroundVideoStartTime(val);
+                                                        }}
+                                                        className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
+                                                        disabled={!videoDurationSec}
+                                                    />
+                                                </div>
+                                                {videoDurationSec && (
+                                                    <p className="text-xs text-zinc-500 mt-1">
+                                                        Video: {videoDurationSec.toFixed(1)}s |
+                                                        Audio: {audioDurationSec?.toFixed(1) ?? '?'}s
+                                                    </p>
+                                                )}
+                                                <div className="mt-2">
+                                                    <label className="flex items-center gap-2 text-xs">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={videoLoop}
+                                                            onChange={(e) => setVideoLoop(e.target.checked)}
+                                                            className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                                        />
+                                                        Lặp lại video (Loop)
+                                                    </label>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </section>
+
+                            <div className="border-t border-zinc-800" />
+
+                            <section>
+                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Phụ đề</h2>
+                                <div className="flex items-center gap-4 mb-2">
+                                    <label className="text-xs flex items-center gap-2">
+                                        Màu đã hát
+                                        <input
+                                            type="color"
+                                            value={sungColor}
+                                            onChange={(e) => setSungColor(e.target.value)}
+                                            className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                                        />
+                                    </label>
+                                    <label className="text-xs flex items-center gap-2">
+                                        Màu chưa hát
+                                        <input
+                                            type="color"
+                                            value={unsungColor}
+                                            onChange={(e) => setUnsungColor(e.target.value)}
+                                            className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                                        />
+                                    </label>
+                                </div>
+                                <label className="text-xs flex flex-col gap-1">
+                                    Cỡ chữ (px)
+                                    <input
+                                        type="number"
+                                        min={24}
+                                        max={120}
+                                        value={fontSize}
+                                        onChange={(e) => setFontSize(e.target.value)}
+                                        onBlur={() => {
+                                            let val = Number(fontSize);
+                                            if (isNaN(val) || val < 24) val = 24;
+                                            if (val > 120) val = 120;
+                                            setFontSize(val);
+                                        }}
+                                        className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
+                                    />
+                                </label>
+
+                                <label className="text-xs flex flex-col gap-1 mt-2">
+                                    Font chữ
+                                    <select
+                                        value={fontFamily}
+                                        onChange={(e) => setFontFamily(e.target.value)}
+                                        className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
+                                    >
+                                        <option value="Roboto">Roboto (Mặc định)</option>
+                                        <option value="Inter Tight">Inter Tight</option>
+                                        <option value="Arial">Arial</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Lora">Lora (Serif)</option>
+                                        <option value="Montserrat">Montserrat</option>
+                                        <option value="Oswald">Oswald</option>
+                                        <option value="Playfair Display">Playfair Display (Serif)</option>
+                                    </select>
+                                </label>
+
+                                <div className="mt-4">
+                                    <label className="flex items-center gap-2 text-xs mb-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={enableShadow}
+                                            onChange={(e) => setEnableShadow(e.target.checked)}
+                                            className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                        />
+                                        Bật đổ bóng (Drop Shadow)
+                                    </label>
+                                </div>
+
+                                <div className="mt-4 border-t border-zinc-800 pt-4">
+                                    <h3 className="text-xs font-bold text-zinc-500 mb-2 uppercase">Bố cục lời</h3>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="lyricsLayout"
+                                                value="traditional"
+                                                checked={lyricsLayout === 'traditional'}
+                                                onChange={() => setLyricsLayout('traditional')}
+                                                className="accent-green-500"
+                                            />
+                                            Truyền thống (Trái/Phải - Dưới)
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="lyricsLayout"
+                                                value="bottom"
+                                                checked={lyricsLayout === 'bottom'}
+                                                onChange={() => setLyricsLayout('bottom')}
+                                                className="accent-green-500"
+                                            />
+                                            Căn dưới (Giữa)
+                                        </label>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div className="border-t border-zinc-800" />
+
+                            <section>
+                                <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Render Setting</h2>
                                 <div>
                                     <div className="flex justify-between text-xs mb-1">
-                                        <span>Độ mờ nền</span>
-                                        <span>{Math.round(backgroundDim * 100)}%</span>
+                                        <span>CRF - Thấp hơn là nét hơn</span>
+                                        <span>{crf}</span>
                                     </div>
                                     <input
                                         type="range"
-                                        min={0}
-                                        max={1}
-                                        step={0.05}
-                                        value={backgroundDim}
-                                        onChange={(e) => setBackgroundDim(Number(e.target.value))}
+                                        min={10}
+                                        max={40}
+                                        step={1}
+                                        value={crf}
+                                        onChange={(e) => setCrf(Number(e.target.value))}
                                         className="w-full accent-green-500"
                                     />
+                                    <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+                                        <span>10 (Nét)</span>
+                                        <span>40 (Nhẹ)</span>
+                                    </div>
                                 </div>
-
-
-
-                                {backgroundType === 'video' && (
-                                    <>
-                                        <div>
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span>Bắt đầu video từ</span>
-                                                <span>{Number(backgroundVideoStartTime).toFixed(1)}s</span>
-                                            </div>
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                max={videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0}
-                                                step={0.1}
-                                                value={backgroundVideoStartTime}
-                                                onChange={(e) => setBackgroundVideoStartTime(e.target.value)}
-                                                onBlur={() => {
-                                                    let val = Number(backgroundVideoStartTime);
-                                                    if (isNaN(val) || val < 0) val = 0;
-                                                    const max = videoDurationSec ? Math.max(0, videoDurationSec - 1) : 0;
-                                                    if (val > max) val = max;
-                                                    setBackgroundVideoStartTime(val);
-                                                }}
-                                                className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
-                                                disabled={!videoDurationSec}
-                                            />
-                                        </div>
-                                        {videoDurationSec && (
-                                            <p className="text-xs text-zinc-500 mt-1">
-                                                Video: {videoDurationSec.toFixed(1)}s |
-                                                Audio: {audioDurationSec?.toFixed(1) ?? '?'}s
-                                            </p>
-                                        )}
-                                        <div className="mt-2">
-                                            <label className="flex items-center gap-2 text-xs">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={videoLoop}
-                                                    onChange={(e) => setVideoLoop(e.target.checked)}
-                                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
-                                                />
-                                                Lặp lại video (Loop)
-                                            </label>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </section>
-
-                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Phụ đề</h2>
-                        <div className="flex items-center gap-4 mb-2">
-                            <label className="text-xs flex items-center gap-2">
-                                Màu đã hát
-                                <input
-                                    type="color"
-                                    value={sungColor}
-                                    onChange={(e) => setSungColor(e.target.value)}
-                                    className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                                />
-                            </label>
-                            <label className="text-xs flex items-center gap-2">
-                                Màu chưa hát
-                                <input
-                                    type="color"
-                                    value={unsungColor}
-                                    onChange={(e) => setUnsungColor(e.target.value)}
-                                    className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                                />
-                            </label>
+                                <div className="mt-4">
+                                    <label className="flex items-center gap-2 text-xs">
+                                        <input
+                                            type="checkbox"
+                                            checked={renderSample}
+                                            onChange={(e) => setRenderSample(e.target.checked)}
+                                            className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
+                                        />
+                                        Render mẫu (30s đầu)
+                                    </label>
+                                </div>
+                            </section>
                         </div>
-                        <label className="text-xs flex flex-col gap-1">
-                            Cỡ chữ (px)
-                            <input
-                                type="number"
-                                min={24}
-                                max={120}
-                                value={fontSize}
-                                onChange={(e) => setFontSize(e.target.value)}
-                                onBlur={() => {
-                                    let val = Number(fontSize);
-                                    if (isNaN(val) || val < 24) val = 24;
-                                    if (val > 120) val = 120;
-                                    setFontSize(val);
-                                }}
-                                className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
-                            />
-                        </label>
-
-                        <label className="text-xs flex flex-col gap-1 mt-2">
-                            Font chữ
-                            <select
-                                value={fontFamily}
-                                onChange={(e) => setFontFamily(e.target.value)}
-                                className="w-full bg-zinc-800 p-2 rounded border border-zinc-700 text-sm"
-                            >
-                                <option value="Roboto">Roboto (Mặc định)</option>
-                                <option value="Inter Tight">Inter Tight</option>
-                                <option value="Arial">Arial</option>
-                                <option value="Times New Roman">Times New Roman</option>
-                                <option value="Lora">Lora (Serif)</option>
-                                <option value="Montserrat">Montserrat</option>
-                                <option value="Oswald">Oswald</option>
-                                <option value="Playfair Display">Playfair Display (Serif)</option>
-                            </select>
-                        </label>
-
-                        <div className="mt-4">
-                            <label className="flex items-center gap-2 text-xs mb-2">
-                                <input
-                                    type="checkbox"
-                                    checked={enableShadow}
-                                    onChange={(e) => setEnableShadow(e.target.checked)}
-                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
-                                />
-                                Bật đổ bóng (Drop Shadow)
-                            </label>
-                        </div>
-
-                        <div className="mt-4 border-t border-zinc-800 pt-4">
-                            <h3 className="text-xs font-bold text-zinc-500 mb-2 uppercase">Bố cục lời</h3>
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="lyricsLayout"
-                                        value="traditional"
-                                        checked={lyricsLayout === 'traditional'}
-                                        onChange={() => setLyricsLayout('traditional')}
-                                        className="accent-green-500"
-                                    />
-                                    Truyền thống (Trái/Phải - Dưới)
-                                </label>
-                                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="lyricsLayout"
-                                        value="bottom"
-                                        checked={lyricsLayout === 'bottom'}
-                                        onChange={() => setLyricsLayout('bottom')}
-                                        className="accent-green-500"
-                                    />
-                                    Căn dưới (Giữa)
-                                </label>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                        <h2 className="text-sm font-bold text-zinc-400 uppercase mb-4 tracking-wider">Render Setting</h2>
-                        <div>
-                            <div className="flex justify-between text-xs mb-1">
-                                <span>CRF - Thấp hơn là nét hơn</span>
-                                <span>{crf}</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={10}
-                                max={40}
-                                step={1}
-                                value={crf}
-                                onChange={(e) => setCrf(Number(e.target.value))}
-                                className="w-full accent-green-500"
-                            />
-                            <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
-                                <span>10 (Nét)</span>
-                                <span>40 (Nhẹ)</span>
-                            </div>
-                        </div>
-                        <div className="mt-4">
-                            <label className="flex items-center gap-2 text-xs">
-                                <input
-                                    type="checkbox"
-                                    checked={renderSample}
-                                    onChange={(e) => setRenderSample(e.target.checked)}
-                                    className="rounded bg-zinc-800 border-zinc-700 accent-green-500"
-                                />
-                                Render mẫu (30s đầu)
-                            </label>
-                        </div>
-                    </section>
+                    </div>
                 </aside>
 
-                <div className="flex-1 min-w-0">
-                    <div className="mb-6">
-                        {/* <h2 className="text-lg font-bold text-zinc-400 mb-4">Xem trước</h2> */}
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden gap-4">
+                    <div className="flex-1 flex justify-center bg-black/50 rounded-xl border border-zinc-800 overflow-hidden relative min-h-0">
+                        {/* Player Container */}
                         {currentAudioSrc ? (
-                            <div className="rounded-xl overflow-hidden border border-zinc-800 bg-black aspect-video shadow-2xl">
+                            <div className="h-full aspect-video">
                                 <Player
                                     acknowledgeRemotionLicense
                                     ref={setPlayerCallback}
@@ -902,18 +915,16 @@ export default function EditorPage() {
                                 />
                             </div>
                         ) : (
-                            <div className="aspect-video flex items-center justify-center bg-zinc-900 rounded-xl border border-dashed border-zinc-700 text-zinc-500">
+                            <div className="w-full h-full flex items-center justify-center text-zinc-500">
                                 Chọn file âm thanh để xem trước
                             </div>
                         )}
                     </div>
 
-                    <section className="bg-zinc-900 rounded-xl p-4 border border-zinc-800 flex flex-col h-auto">
-                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-zinc-800">
+                    <section className="h-auto flex-shrink-0 bg-zinc-900 rounded-xl border border-zinc-800 flex flex-col overflow-hidden">
+                        <div className="flex-shrink-0 p-4 border-b border-zinc-800 flex justify-between items-center">
                             <div className="flex items-center gap-4">
                                 <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Timeline Editor</h2>
-                                {/* Clock Display moved to Timeline or removed for perf */}
-                                {/* If we need clock, we should make it a separate component that subscribes to player */}
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => addCaption()}
@@ -950,29 +961,37 @@ export default function EditorPage() {
 
                         </div>
 
-                        <div className="flex-1 flex flex-col min-h-0 relative">
+                        <div className="flex-1 relative overflow-hidden flex flex-col">
                             {timelineWarning && (
                                 <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 bg-red-500/90 text-white px-3 py-1 rounded text-xs font-bold shadow-lg animate-fade-in-down pointer-events-none">
                                     {timelineWarning}
                                 </div>
                             )}
-                            {/* Timeline Component */}
-                            <Timeline
-                                audioUrl={currentAudioSrc}
-                                captions={captions}
-                                player={player}
-                                duration={audioDurationSec || 30}
-                                selectedIndexes={selectedIndexes}
-                                onSelect={setSelectedIndexes}
-                                onUpdateCaption={(index, newCaption) => {
-                                    setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
-                                }}
-                            />
+                            {/* Timeline Component - Needs to handle its own scrolling or fit in */}
+                            <div className="flex-1 overflow-hidden">
+                                <Timeline
+                                    audioUrl={currentAudioSrc}
+                                    captions={captions}
+                                    player={player}
+                                    duration={audioDurationSec || 30}
+                                    selectedIndexes={selectedIndexes}
+                                    onSelect={setSelectedIndexes}
+                                    onUpdateCaption={(index, newCaption) => {
+                                        setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
+                                    }}
+                                />
+                            </div>
                         </div>
                     </section>
-
-                    {/* Render section moved to header */}
                 </div >
+
+                <div className="w-80 flex-shrink-0 h-full flex flex-col">
+                    <SubtitleSidebar
+                        captions={captions}
+                        onUpdateCaption={handleUpdateCaptionText}
+                        player={player}
+                    />
+                </div>
             </div >
         </div >
     );

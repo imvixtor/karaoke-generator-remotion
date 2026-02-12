@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 
 interface AudioWaveformProps {
@@ -38,7 +38,10 @@ const AudioWaveform: React.FC<AudioWaveformProps> = ({
             interact: false,
         });
 
-        wavesurfer.load(audioUrl);
+        wavesurfer.load(audioUrl).catch(err => {
+            if (err.name === 'AbortError') return;
+            console.error('WaveSurfer load error:', err);
+        });
         wavesurferRef.current = wavesurfer;
 
         return () => {
