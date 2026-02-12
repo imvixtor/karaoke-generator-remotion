@@ -153,7 +153,7 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <button
-                                        onClick={() => onSeek(cap.startMs)}
+                                        onClick={(e) => { e.stopPropagation(); onSeek(cap.startMs); }}
                                         className="text-xs font-mono text-cyan-500 hover:text-cyan-400 bg-cyan-950/30 px-2 py-0.5 rounded cursor-pointer transition-colors"
                                         title="Click để nhảy đến thời gian này"
                                     >
@@ -180,7 +180,7 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                                     </div>
                                 ) : (
                                     <div
-                                        onClick={() => handleStartEdit(index, cap.text)}
+                                        onClick={(e) => { e.stopPropagation(); handleStartEdit(index, cap.text); }}
                                         className="text-sm text-zinc-300 hover:text-white cursor-pointer hover:bg-zinc-800/50 p-1 -m-1 rounded transition-colors break-words whitespace-pre-wrap"
                                         title="Click để sửa nội dung"
                                     >

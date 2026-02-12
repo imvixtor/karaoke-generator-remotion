@@ -65,7 +65,7 @@ const SubtitleTrack: React.FC<SubtitleTrackProps> = ({
                         caption={caption}
                         zoom={zoom}
                         isSelected={selectedIndexes.includes(caption.originalIndex)}
-                        onSelect={(idx, e) => handleSelect(idx, e?.ctrlKey || e?.metaKey || false)}
+                        onSelect={(idx, e) => handleSelect(idx, e?.ctrlKey || e?.metaKey || e?.shiftKey || false)}
                         onUpdate={onUpdate}
                         minTime={minTime}
                         maxTime={maxTime}

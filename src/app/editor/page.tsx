@@ -603,9 +603,28 @@ export default function EditorPage() {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    const handleGlobalClick = useCallback((e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Check if click is on an interactive element
+        if (target.closest('button, input, textarea, a, [data-interactive="true"]')) return;
+
+        // If clicking inside Timeline or SubtitleSidebar (on their backgrounds), those components handle their own logic.
+        // But if clicks bubble up here, it means they weren't handled (or were just background clicks).
+        // However, we must be careful not to override component-specific behavior.
+        // For now, let's just valid "empty space" clicks. 
+        // A safe heuristic: if it's the main container or specific layout containers.
+
+        if (selectedIndexes.length > 0) {
+            setSelectedIndexes((prev) => prev.length ? [] : prev);
+        }
+    }, [selectedIndexes]);
+
     return (
-        <div className="h-screen flex flex-col bg-zinc-950 text-zinc-200 font-sans overflow-hidden">
-            <header className="flex-shrink-0 px-8 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950 z-20">
+        <div
+            className="h-screen flex flex-col bg-zinc-950 text-zinc-200 font-sans overflow-hidden"
+            onClick={handleGlobalClick}
+        >
+            <header className="flex-shrink-0 px-8 py-4 flex justify-between items-center bg-zinc-950 z-20">
                 <div>
                     <h1 className="text-3xl font-bold text-green-500 mb-2">
                         Karaoke Generator
@@ -940,8 +959,6 @@ export default function EditorPage() {
                                 <span className="text-xs text-zinc-500 min-w-[60px] text-center">Zoom: {Math.round(zoom)}</span>
                                 <button onClick={handleZoomIn} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">+</button>
 
-                                <div className="w-px bg-zinc-700 mx-1 h-4"></div>
-
                                 <button
                                     onClick={() => addCaption()}
                                     className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold"
@@ -949,12 +966,10 @@ export default function EditorPage() {
                                     + Thêm Sub
                                 </button>
 
-                                <div className="w-px bg-zinc-700 mx-1 h-4"></div>
-
                                 {selectedIndexes.length > 0 ? (
                                     <button
                                         onClick={handleClearCaptions}
-                                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                                        className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold flex items-center gap-1"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -964,7 +979,7 @@ export default function EditorPage() {
                                 ) : (
                                     <button
                                         onClick={handleClearCaptions}
-                                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                                        className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold flex items-center gap-1"
                                         title="Xóa tất cả phụ đề"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
