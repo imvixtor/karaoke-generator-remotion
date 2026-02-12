@@ -6,6 +6,8 @@ interface SubtitleSidebarProps {
     captions: KaraokeCaption[];
     onUpdateCaption: (index: number, newText: string) => void;
     player: PlayerRef | null;
+    onImportSrt: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onExportSrt: () => void;
 }
 
 // Hook to subscribe to player frame updates
@@ -42,6 +44,8 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
     captions,
     onUpdateCaption,
     player,
+    onImportSrt,
+    onExportSrt,
 }) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
@@ -107,8 +111,25 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
 
     return (
         <div className="flex flex-col h-full bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-            <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
-                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Danh sách phụ đề ({captions.length})</h3>
+            <div className="p-4 border-b border-zinc-800 bg-zinc-900/50 flex-shrink-0 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Phụ đề ({captions.length})</h3>
+                <div className="flex items-center gap-2">
+                    <label className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white cursor-pointer" title="Nhập SRT">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <input type="file" accept=".srt,.ass,text/plain" onChange={onImportSrt} className="hidden" />
+                    </label>
+                    <button
+                        onClick={onExportSrt}
+                        className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white"
+                        title="Xuất SRT"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">

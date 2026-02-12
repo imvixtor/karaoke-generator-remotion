@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import AudioWaveform from './AudioWaveform';
 import SubtitleTrack from './SubtitleTrack';
 import type { KaraokeCaption } from '../../types/karaoke';
@@ -36,6 +36,7 @@ interface TimelineProps {
     onUpdateCaption: (index: number, caption: KaraokeCaption) => void;
     selectedIndexes: number[];
     onSelect: (indexes: number[]) => void;
+    zoom: number;
 }
 
 const Timeline: React.FC<TimelineProps> = ({
@@ -46,8 +47,8 @@ const Timeline: React.FC<TimelineProps> = ({
     onUpdateCaption,
     selectedIndexes,
     onSelect,
+    zoom,
 }) => {
-    const [zoom, setZoom] = useState(50); // pixels per second
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // FPS constant - assuming 30 as per page.tsx default
@@ -57,11 +58,11 @@ const Timeline: React.FC<TimelineProps> = ({
     const currentTime = currentFrame / FPS;
 
     // Zoom constraints
-    const minZoom = 10;
-    const maxZoom = 200;
+    // const minZoom = 10;
+    // const maxZoom = 200;
 
-    const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, maxZoom));
-    const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, minZoom));
+    // const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, maxZoom));
+    // const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, minZoom));
 
     // Calculate total width
     const totalWidth = duration * zoom;
@@ -117,18 +118,6 @@ const Timeline: React.FC<TimelineProps> = ({
 
     return (
         <div className="flex flex-col bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden h-auto mt-4">
-            {/* Toolbar */}
-            <div className="h-10 bg-zinc-900 border-b border-zinc-800 flex items-center px-4 gap-4 justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase text-zinc-500">Timeline</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={handleZoomOut} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">-</button>
-                    <span className="text-xs text-zinc-500 min-w-[60px] text-center">Zoom: {Math.round(zoom)}</span>
-                    <button onClick={handleZoomIn} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">+</button>
-                </div>
-            </div>
-
             {/* Scrollable Area */}
             <div
                 ref={scrollContainerRef}

@@ -58,6 +58,7 @@ export default function EditorPage() {
     const [fontSize, setFontSize] = useState<number | string>(65);
     const [enableShadow, setEnableShadow] = useState(true); // Default true
     const [backgroundDim, setBackgroundDim] = useState(0.50);
+    const [zoom, setZoom] = useState(50); // pixels per second
 
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [videoLoop, setVideoLoop] = useState(false); // New Loop option
@@ -99,6 +100,13 @@ export default function EditorPage() {
             i === index ? { ...cap, text: newText } : cap
         ));
     }, []);
+
+    // Zoom constraints
+    const minZoom = 10;
+    const maxZoom = 200;
+
+    const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, maxZoom));
+    const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, minZoom));
 
     // ... (rest of code)
 
@@ -925,40 +933,47 @@ export default function EditorPage() {
                         <div className="flex-shrink-0 p-4 border-b border-zinc-800 flex justify-between items-center">
                             <div className="flex items-center gap-4">
                                 <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Timeline Editor</h2>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => addCaption()}
-                                        className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold"
-                                    >
-                                        + Thêm Sub
-                                    </button>
+
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={handleZoomOut} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">-</button>
+                                <span className="text-xs text-zinc-500 min-w-[60px] text-center">Zoom: {Math.round(zoom)}</span>
+                                <button onClick={handleZoomIn} className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300">+</button>
+
+                                <div className="w-px bg-zinc-700 mx-1 h-4"></div>
+
+                                <button
+                                    onClick={() => addCaption()}
+                                    className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold"
+                                >
+                                    + Thêm Sub
+                                </button>
+
+                                <div className="w-px bg-zinc-700 mx-1 h-4"></div>
+
+                                {selectedIndexes.length > 0 ? (
                                     <button
                                         onClick={handleClearCaptions}
-                                        className={`px-3 py-1 text-white rounded text-xs font-bold ${selectedIndexes.length > 0
-                                            ? 'bg-orange-600 hover:bg-orange-500'
-                                            : 'bg-red-600 hover:bg-red-500'
-                                            }`}
+                                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
                                     >
-                                        {selectedIndexes.length === 0
-                                            ? 'Xóa hết'
-                                            : selectedIndexes.length === 1
-                                                ? 'Xóa'
-                                                : `Xóa (${selectedIndexes.length})`}
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Xóa ({selectedIndexes.length})
                                     </button>
-                                    <div className="w-px bg-zinc-700 mx-1"></div>
+                                ) : (
                                     <button
-                                        onClick={handleExportSrt}
-                                        className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs"
+                                        onClick={handleClearCaptions}
+                                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                                        title="Xóa tất cả phụ đề"
                                     >
-                                        Xuất SRT
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Xóa hết
                                     </button>
-                                    <label className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 text-white rounded text-xs cursor-pointer flex items-center gap-1">
-                                        <span>Nhập SRT</span>
-                                        <input type="file" accept=".srt,.ass,text/plain" onChange={handleSrtFile} className="hidden" />
-                                    </label>
-                                </div>
+                                )}
                             </div>
-
                         </div>
 
                         <div className="flex-1 relative overflow-hidden flex flex-col">
@@ -967,7 +982,7 @@ export default function EditorPage() {
                                     {timelineWarning}
                                 </div>
                             )}
-                            {/* Timeline Component - Needs to handle its own scrolling or fit in */}
+                            {/* Timeline Component */}
                             <div className="flex-1 overflow-hidden">
                                 <Timeline
                                     audioUrl={currentAudioSrc}
@@ -979,6 +994,7 @@ export default function EditorPage() {
                                     onUpdateCaption={(index, newCaption) => {
                                         setCaptions(prev => prev.map((c, i) => i === index ? newCaption : c));
                                     }}
+                                    zoom={zoom}
                                 />
                             </div>
                         </div>
@@ -990,6 +1006,8 @@ export default function EditorPage() {
                         captions={captions}
                         onUpdateCaption={handleUpdateCaptionText}
                         player={player}
+                        onImportSrt={handleSrtFile}
+                        onExportSrt={handleExportSrt}
                     />
                 </div>
             </div >
