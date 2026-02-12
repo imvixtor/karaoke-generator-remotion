@@ -30,7 +30,15 @@ const SubtitleClip: React.FC<SubtitleClipProps> = ({
 
     const handleMouseDown = (e: React.MouseEvent, type: 'move' | 'left' | 'right') => {
         e.stopPropagation();
-        onSelect(index, e);
+
+        if (type === 'move') {
+            if (!isSelected) {
+                onSelect(index, e);
+                return;
+            }
+        }
+        // If resize handle, isSelected is guaranteed true by render logic
+
 
         const startX = e.clientX;
         const originalStart = caption.startMs;
