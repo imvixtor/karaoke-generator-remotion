@@ -60,3 +60,8 @@
     }
   }
 }
+
+/* Prevent overscroll behavior to stop browser navigation gestures globally */
+html, body {
+  overscroll-behavior: none;
+}
