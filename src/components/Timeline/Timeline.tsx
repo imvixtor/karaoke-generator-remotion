@@ -140,7 +140,7 @@ const Timeline: React.FC<TimelineProps> = ({
                 let newZoom = zoom - (e.deltaY * zoomFactor);
 
                 // Clamp
-                newZoom = Math.max(10, Math.min(200, newZoom));
+                newZoom = Math.max(20, Math.min(150, newZoom));
 
                 // Round to nearest integer to avoid messy decimals
                 newZoom = Math.round(newZoom);

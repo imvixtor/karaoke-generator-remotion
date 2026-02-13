@@ -65,7 +65,7 @@ export default function EditorPage() {
     const [fontSize, setFontSize] = useState<number | string>(65);
     const [enableShadow, setEnableShadow] = useState(true); // Default true
     const [backgroundDim, setBackgroundDim] = useState(0.50);
-    const [zoom, setZoom] = useState(50); // pixels per second
+    const [zoom, setZoom] = useState(30); // pixels per second
 
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [videoLoop, setVideoLoop] = useState(false); // New Loop option
@@ -115,8 +115,8 @@ export default function EditorPage() {
     }, []);
 
     // Zoom constraints
-    const minZoom = 10;
-    const maxZoom = 200;
+    const minZoom = 20;
+    const maxZoom = 150;
 
     const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, maxZoom));
     const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, minZoom));
