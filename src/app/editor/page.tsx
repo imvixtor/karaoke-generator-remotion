@@ -497,10 +497,6 @@ export default function EditorPage() {
             alert('Vui lòng chọn file âm thanh trước khi render.');
             return;
         }
-        if (captions.length === 0) {
-            alert('Vui lòng thêm phụ đề trước khi render.');
-            return;
-        }
         if (backgroundType === 'video' && !videoDurationSec) {
             alert('Đang tải thông tin video nền, vui lòng đợi...');
             return;

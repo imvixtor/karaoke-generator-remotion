@@ -107,73 +107,79 @@ export async function POST(request: NextRequest) {
             const { fps, durationInFrames, width, height } = composition;
 
             // --- STEP 1: RENDER FOREGROUND (Remotion) ---
-            if (isCancelled) throw new Error("Cancelled");
-            renderProgress[renderId] = { progress: 10, status: "rendering_fg" };
-            console.log(`[${renderId}] Step 1: Rendering Foreground...`);
+            const hasCaptions = inputProps.captions && inputProps.captions.length > 0;
 
-            const autoDetectedGl = (() => {
-                const platform = process.platform;
-                if (platform === 'win32') return 'angle';
-                if (platform === 'linux') return 'egl';
-                if (platform === 'darwin') return 'swangle';
-                return undefined;
-            })();
+            if (hasCaptions) {
+                if (isCancelled) throw new Error("Cancelled");
+                renderProgress[renderId] = { progress: 10, status: "rendering_fg" };
+                console.log(`[${renderId}] Step 1: Rendering Foreground...`);
 
-            await renderFrames({
-                composition,
-                serveUrl: bundleLocation,
-                inputProps: step1InputProps,
-                imageFormat: 'png',
-                outputDir: foregroundDir,
-                chromiumOptions: {
-                    gl: autoDetectedGl,
-                },
-                frameRange: options.renderSample ? [0, Math.min(30 * 30, durationInFrames) - 1] : undefined,
-                cancelSignal,
-                onStart: () => {
-                    console.log(`[${renderId}] Render started`);
-                },
-                onFrameUpdate: (rendered) => {
-                    if (isCancelled) return;
-                    // Step 1 accounts for 0-70% of total progress
-                    const totalFrames = options.renderSample ? Math.min(30 * 30, durationInFrames) : durationInFrames;
-                    const progress = rendered / totalFrames;
-                    const pct = Math.round(10 + progress * 60);
-                    renderProgress[renderId] = { progress: pct, status: "rendering_fg" };
-                }
-            });
+                const autoDetectedGl = (() => {
+                    const platform = process.platform;
+                    if (platform === 'win32') return 'angle';
+                    if (platform === 'linux') return 'egl';
+                    if (platform === 'darwin') return 'swangle';
+                    return undefined;
+                })();
 
-            if (isCancelled) throw new Error("Cancelled");
-            console.log(`[${renderId}] Step 1 Complete. Renaming files...`);
-
-            // Normalize filenames to fg_%04d.png for FFmpeg
-            try {
-                const files = fs.readdirSync(foregroundDir)
-                    .filter((f: string) => f.endsWith('.png'));
-
-                // Sort by frame number extracted from filename
-                files.sort((a: string, b: string) => {
-                    const numA = parseInt(a.match(/(\d+)\.png$/)?.[1] || "0");
-                    const numB = parseInt(b.match(/(\d+)\.png$/)?.[1] || "0");
-                    return numA - numB;
+                await renderFrames({
+                    composition,
+                    serveUrl: bundleLocation,
+                    inputProps: step1InputProps,
+                    imageFormat: 'png',
+                    outputDir: foregroundDir,
+                    chromiumOptions: {
+                        gl: autoDetectedGl,
+                    },
+                    frameRange: options.renderSample ? [0, Math.min(30 * 30, durationInFrames) - 1] : undefined,
+                    cancelSignal,
+                    onStart: () => {
+                        console.log(`[${renderId}] Render started`);
+                    },
+                    onFrameUpdate: (rendered) => {
+                        if (isCancelled) return;
+                        // Step 1 accounts for 0-70% of total progress
+                        const totalFrames = options.renderSample ? Math.min(30 * 30, durationInFrames) : durationInFrames;
+                        const progress = rendered / totalFrames;
+                        const pct = Math.round(10 + progress * 60);
+                        renderProgress[renderId] = { progress: pct, status: "rendering_fg" };
+                    }
                 });
 
-                // Rename
-                for (let i = 0; i < files.length; i++) {
-                    const oldPath = join(foregroundDir, files[i]);
-                    const newPath = join(foregroundDir, `fg_${String(i).padStart(4, '0')}.png`);
-                    if (oldPath !== newPath) {
-                        fs.renameSync(oldPath, newPath);
+                if (isCancelled) throw new Error("Cancelled");
+                console.log(`[${renderId}] Step 1 Complete. Renaming files...`);
+
+                // Normalize filenames to fg_%04d.png for FFmpeg
+                try {
+                    const files = fs.readdirSync(foregroundDir)
+                        .filter((f: string) => f.endsWith('.png'));
+
+                    // Sort by frame number extracted from filename
+                    files.sort((a: string, b: string) => {
+                        const numA = parseInt(a.match(/(\d+)\.png$/)?.[1] || "0");
+                        const numB = parseInt(b.match(/(\d+)\.png$/)?.[1] || "0");
+                        return numA - numB;
+                    });
+
+                    // Rename
+                    for (let i = 0; i < files.length; i++) {
+                        const oldPath = join(foregroundDir, files[i]);
+                        const newPath = join(foregroundDir, `fg_${String(i).padStart(4, '0')}.png`);
+                        if (oldPath !== newPath) {
+                            fs.renameSync(oldPath, newPath);
+                        }
                     }
+                } catch (e) {
+                    console.error("Renaming error:", e);
+                    // Continue? If renaming fails, ffmpeg might fail.
+                    throw e;
                 }
-            } catch (e) {
-                console.error("Renaming error:", e);
-                // Continue? If renaming fails, ffmpeg might fail.
-                throw e;
+            } else {
+                console.log(`[${renderId}] No captions provided. Skipping Step 1 (Foreground Render).`);
             }
 
             if (isCancelled) throw new Error("Cancelled");
-            console.log(`[${renderId}] Step 1 Complete. Starting Step 2...`);
+            console.log(`[${renderId}] Starting Step 2...`);
 
             // --- STEP 2: COMPOSE (FFmpeg) ---
             renderProgress[renderId] = { progress: 70, status: "compositing" };
@@ -191,7 +197,7 @@ export async function POST(request: NextRequest) {
             // Inputs:
             // 0: Background (if exists) - or generic black
             // 1: Audio
-            // 2: Foreground Sequence
+            // 2: Foreground Sequence (only if hasCaptions)
 
             // Note: If no background src (type=black), we can generate black color source.
 
@@ -235,18 +241,18 @@ export async function POST(request: NextRequest) {
             }
 
             // Foreground input (ensure frame pattern matches remotion output)
-            // Remotion uses 0-indexed frames usually? outputLocation was "fg_{frame}.png"
-            // With "frame_{frame}.png" Remotion replaces {frame} with the numbers.
-            // We need to know the start number. Usually 0.
-            // Files are renamed to fg_0000.png, so use %04d.
-            inputs.push(`-framerate ${fps} -i "${join(foregroundDir, 'fg_%04d.png')}"`);
-            fgIndex = streamIndex++;
+            if (hasCaptions) {
+                inputs.push(`-framerate ${fps} -i "${join(foregroundDir, 'fg_%04d.png')}"`);
+                fgIndex = streamIndex++;
+            }
 
             // Filter Chain Construction
             // Goal: [bg] -> scale/crop -> loop/trim -> blur -> dim -> [final_bg]
-            // [final_bg][fg] overlay -> output
+            // [final_bg][fg] overlay -> output (if hasCaptions)
+            // [final_bg] -> output (if !hasCaptions)
 
             let currentBgLabel = "";
+            let finalOutputLabel = "";
 
             // Calculate actual duration in seconds based on what we rendered (Step 1)
             // If renderSample is true, we only rendered 30s.
@@ -261,44 +267,7 @@ export async function POST(request: NextRequest) {
                 filterComplex.push(`[${lastLabel}]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}:(iw-${width})/2:(ih-${height})/2[bg_scaled]`);
                 lastLabel = "bg_scaled";
 
-
-
                 // 3. Dim
-                // Remotion dim is overlay black with opacity = 1 - backgroundDim?
-                // Wait, backgroundDim in Remotion: "opacity: shouldShowDimOverlay ? 0.8 : 1 - backgroundDim" in the overlay div.
-                // The overlay div is black.
-                // So we want to overlay black with alpha.
-                // Or simply darken the video.
-                // "1 - backgroundDim" opacity implies:
-                // If dim=1, opacity=0 (transparent black -> no dim).
-                // If dim=0.6, opacity=0.4.
-                // Users prop: "backgroundDim: 0.60" -> User likely means "Darkness level".
-                // In code: `opacity: 1 - backgroundDim`.
-                // If user sets 0.60. Opacity = 0.4.
-                // This means the black layer has 0.4 opacity.
-                // Result = BG * 0.6 + Black * 0.4.
-                // FFmpeg: color=black@0.4 ... or drawbox.
-                // Actually `eq` filter: brightness.
-                // Or overlay a black color source.
-
-                // Let's use `color` source overlay.
-                // But simpler: just use `drawbox=color=black@<opacity>:t=fill`.
-                // Opacity in remotion logic: `1 - backgroundDim`.
-                // Example: dim=0.6 -> opacity=0.4.
-                // Wait, `KaraokeComposition` logic:
-                // `opacity: shouldShowDimOverlay ? 0.8 : 1 - backgroundDim`
-                // If dim=0.6, opacity=0.4. A black layer with 0.4 opacity.
-                // This obscures the video.
-                // If dim=1 (100% bright?), opacity=0.
-                // If dim=0 (dark?), opacity=1.
-                // Seems `backgroundDim` implies "Brightness" in current code logic?
-                // `opacity: 1 - backgroundDim`.
-                // If Dim=1 => Opacity 0 => Fully visible BG.
-                // If Dim=0 => Opacity 1 => Fully Black.
-                // So `backgroundDim` is effectively "Brightness".
-
-                // Let's call it brightnessFactor = backgroundDim.
-                // We can use default if undefined (0.6).
                 const brightness = bgDim;
                 if (brightness < 1) {
                     const opacity = 1 - brightness;
@@ -308,11 +277,6 @@ export async function POST(request: NextRequest) {
                     lastLabel = "bg_dimmed";
                 }
 
-                // 4. Trim to duration (important for loop matching)
-                // We want the BG to last exactly durationInFrames
-                // The `-t` option on output handles total duration, but for filter matching...
-                // We rely on -t in output.
-
                 currentBgLabel = lastLabel;
             } else {
                 // Create black background
@@ -320,9 +284,14 @@ export async function POST(request: NextRequest) {
                 currentBgLabel = "bg_black";
             }
 
-            // Overlay Foreground
-            // [bg][fg]overlay
-            filterComplex.push(`[${currentBgLabel}][${fgIndex}:v]overlay=0:0:format=auto[v_final]`);
+            // Overlay Foreground (if exists)
+            if (hasCaptions && fgIndex !== -1) {
+                filterComplex.push(`[${currentBgLabel}][${fgIndex}:v]overlay=0:0:format=auto[v_final]`);
+                finalOutputLabel = "[v_final]";
+            } else {
+                // Just use the background
+                finalOutputLabel = `[${currentBgLabel}]`;
+            }
 
             // Audio mapping
             let mapAudio = "";
@@ -336,7 +305,7 @@ export async function POST(request: NextRequest) {
             // -pix_fmt yuv420p for compatibility
 
             const filterStr = filterComplex.join(";");
-            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "[v_final]" ${mapAudio} -c:v h264_nvenc -crf ${options.crf ?? 23} -preset medium -c:a aac -b:a 192k -t ${durationSec} -y "${finalOutputPath}"`;
+            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} -c:v h264_nvenc -crf ${options.crf ?? 23} -preset medium -c:a aac -b:a 192k -t ${durationSec} -y "${finalOutputPath}"`;
 
             console.log(`[${renderId}] Executing FFmpeg: ${cmd}`);
 
