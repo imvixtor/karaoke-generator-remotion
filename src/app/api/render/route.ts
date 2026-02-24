@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
             // -pix_fmt yuv420p for compatibility
 
             const filterStr = filterComplex.join(";");
-            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} -c:v h264_nvenc -crf ${options.crf ?? 23} -preset medium -c:a aac -b:a 192k -t ${durationSec} -y "${finalOutputPath}"`;
+            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} -c:v h264_nvenc -crf ${options.crf ?? 23} -preset medium -c:a aac -b:a 192k -r ${fps} -t ${durationSec} -y "${finalOutputPath}"`;
 
             console.log(`[${renderId}] Executing FFmpeg: ${cmd}`);
 
