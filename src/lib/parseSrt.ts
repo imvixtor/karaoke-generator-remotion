@@ -84,7 +84,7 @@ export function parseAssContent(input: string): ParsedCaption[] {
             let match: RegExpExecArray | null;
             while ((match = regex.exec(rawText)) !== null) {
                 const durCs = Number(match[1]) || 0;
-                const segText = match[2].replace(/\{\\.*?}/g, '').trim();
+                const segText = match[2].replace(/\{\\.*?}/g, '');
                 if (!segText) {
                     offsetMs += durCs * 10;
                     continue;

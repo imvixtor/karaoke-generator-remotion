@@ -6,7 +6,7 @@ import { KaraokeComposition } from '../../remotion/KaraokeComposition';
 import type { KaraokeCaption, BackgroundType, KaraokeCompositionProps } from '../../types/karaoke';
 import Timeline from '../../components/Timeline/Timeline';
 import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
-import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
+import { parseSrtContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
 import { Upload, Download, Play, Pause, Save, Settings, Layers, Type, Music, Image as ImageIcon, Video, FileText, Plus, X, Trash2, Moon, Sun, Monitor, Film } from 'lucide-react';
@@ -61,9 +61,8 @@ export default function EditorPage() {
     const [backgroundFileName, setBackgroundFileName] = useState<string | null>(null);
     const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
     const [sungColor, setSungColor] = useState('#00ff88');
-    const [unsungColor, setUnsungColor] = useState('#ffffff');
-    const [fontSize, setFontSize] = useState<number | string>(65);
-    const [enableShadow, setEnableShadow] = useState(true); // Default true
+    const unsungColor = '#ffffff';
+    const [fontSize, setFontSize] = useState<number | string>(80);
     const [backgroundDim, setBackgroundDim] = useState(0.50);
     const [zoom, setZoom] = useState(30); // pixels per second
 
@@ -77,7 +76,7 @@ export default function EditorPage() {
     const [renderDuration, setRenderDuration] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [elapsedTime, setElapsedTime] = useState<number>(0); // ms
-    const [fontFamily, setFontFamily] = useState('Roboto');
+    const [fontFamily, setFontFamily] = useState('Oswald');
     const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
     const [timelineWarning, setTimelineWarning] = useState<string | null>(null);
 
@@ -255,12 +254,7 @@ export default function EditorPage() {
         const reader = new FileReader();
         reader.onload = () => {
             const text = String(reader.result);
-            const lower = file.name.toLowerCase();
-            if (lower.endsWith('.ass')) {
-                setCaptions(parseAssContent(text));
-            } else {
-                setCaptions(parseSrtContent(text));
-            }
+            setCaptions(parseSrtContent(text));
         };
         reader.readAsText(file, 'utf-8');
     }, []);
@@ -388,9 +382,7 @@ export default function EditorPage() {
 
             backgroundVideoStartTime,
             sungColor,
-            unsungColor,
             fontSize,
-            enableShadow,
             audioUrl,
             audioFileName,
             backgroundUrl,
@@ -421,7 +413,7 @@ export default function EditorPage() {
                 window.clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, unsungColor, fontSize, enableShadow, audioUrl, audioFileName, backgroundUrl, backgroundFileName, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
+    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -436,9 +428,7 @@ export default function EditorPage() {
 
                 if (data.backgroundVideoStartTime !== undefined) setBackgroundVideoStartTime(data.backgroundVideoStartTime);
                 if (data.sungColor) setSungColor(data.sungColor);
-                if (data.unsungColor) setUnsungColor(data.unsungColor);
                 if (data.fontSize) setFontSize(data.fontSize);
-                if (data.enableShadow !== undefined) setEnableShadow(data.enableShadow);
                 if (data.audioUrl) setAudioUrl(data.audioUrl);
                 if (data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
                 if (data.audioFileName) setAudioFileName(data.audioFileName);
@@ -466,7 +456,6 @@ export default function EditorPage() {
         sungColor,
         unsungColor,
         fontSize: Number(fontSize),
-        enableShadow,
         durationInFrames,
         fps: FPS,
         lyricsLayout,
@@ -901,18 +890,6 @@ export default function EditorPage() {
                                         <span className="text-xs font-mono uppercase">{sungColor}</span>
                                     </div>
                                 </label>
-                                <label className="space-y-1.5">
-                                    <span className="text-xs text-muted-foreground">Màu chưa hát</span>
-                                    <div className="flex items-center gap-2 p-1 bg-secondary/50 border border-border rounded-lg">
-                                        <input
-                                            type="color"
-                                            value={unsungColor}
-                                            onChange={(e) => setUnsungColor(e.target.value)}
-                                            className="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0"
-                                        />
-                                        <span className="text-xs font-mono uppercase">{unsungColor}</span>
-                                    </div>
-                                </label>
                             </div>
 
                             <div className="space-y-1.5">
@@ -933,29 +910,16 @@ export default function EditorPage() {
                                 </select>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1.5">
-                                    <span className="text-xs text-muted-foreground">Cỡ chữ (px)</span>
-                                    <input
-                                        type="number"
-                                        min={24}
-                                        max={120}
-                                        value={fontSize}
-                                        onChange={(e) => setFontSize(e.target.value)}
-                                        className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
-                                    />
-                                </div>
-                                <div className="flex items-end pb-2">
-                                    <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-                                        <input
-                                            type="checkbox"
-                                            checked={enableShadow}
-                                            onChange={(e) => setEnableShadow(e.target.checked)}
-                                            className="rounded border-border bg-background text-primary"
-                                        />
-                                        Drop Shadow
-                                    </label>
-                                </div>
+                            <div className="space-y-1.5">
+                                <span className="text-xs text-muted-foreground">Cỡ chữ (px)</span>
+                                <input
+                                    type="number"
+                                    min={24}
+                                    max={120}
+                                    value={fontSize}
+                                    onChange={(e) => setFontSize(e.target.value)}
+                                    className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
+                                />
                             </div>
 
                             <div className="space-y-1.5 pt-2">

@@ -34,8 +34,7 @@ export type KaraokeCompositionProps = {
     unsungColor?: string;
     /** Cỡ chữ phụ đề (px) */
     fontSize?: number;
-    /** Bật/tắt đổ bóng chữ */
-    enableShadow?: boolean;
+
     /** Độ dài video (frames) */
     durationInFrames?: number;
     fps: number;

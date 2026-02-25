@@ -49,7 +49,6 @@ function KaraokeSubtitleLine({
     fontSize,
     opacity,
     scale,
-    enableShadow,
     fontFamily,
 }: {
     caption: KaraokeCaption;
@@ -59,7 +58,6 @@ function KaraokeSubtitleLine({
     fontSize: number;
     opacity: number;
     scale: number;
-    enableShadow: boolean;
     fontFamily: string;
 }) {
     const { startMs, endMs, text } = caption;
@@ -75,56 +73,43 @@ function KaraokeSubtitleLine({
                 padding: '20px 80px',
                 whiteSpace: 'pre-wrap',
                 textAlign: 'center',
-                fontFamily: fontFamily, // Use the passed font family
+                fontFamily: fontFamily,
                 fontWeight: 'bold',
                 fontSize: fontSize * scale,
                 lineHeight: 1.4,
-                textShadow: enableShadow ? '0 3px 14px rgba(0,0,0,1)' : undefined,
                 opacity,
                 transform: `scale(1)`,
                 willChange: 'opacity, transform',
+                paintOrder: 'stroke fill',
+                position: 'relative',
             }}
         >
-            {useMemo(() => {
-                if (caption.segments && caption.segments.length > 0) {
-                    return (
-                        <span style={{ color: unsungColor }}>
-                            {caption.segments.map((seg, idx) => {
-                                const segProgress =
-                                    seg.endMs <= seg.startMs
-                                        ? 1
-                                        : Math.min(
-                                            1,
-                                            Math.max(0, (frameMs - seg.startMs) / (seg.endMs - seg.startMs))
-                                        );
-                                const isSegSung = segProgress >= 1;
-                                return (
-                                    <span
-                                        key={idx}
-                                        style={{ color: isSegSung ? sungColor : unsungColor, marginRight: 4 }}
-                                    >
-                                        {seg.text}
-                                    </span>
-                                );
-                            })}
-                        </span>
-                    );
-                }
-
-                return (
-                    <span style={{ color: unsungColor }}>
-                        {text.split('').map((char, i) => {
-                            const charProgress = (i + 1) / text.length;
-                            const isSung = progress >= charProgress;
-                            return (
-                                <span key={i} style={{ color: isSung ? sungColor : unsungColor }}>
-                                    {char}
-                                </span>
-                            );
-                        })}
-                    </span>
-                );
-            }, [caption.segments, caption.text, unsungColor, sungColor, frameMs, progress, text])}
+            {/* Unsung layer (base) */}
+            <span style={{ color: unsungColor, WebkitTextStroke: '12px #000000' }}>
+                {text}
+            </span>
+            {/* Sung layer (overlay, smooth clip across entire line) */}
+            {progress > 0 && (
+                <span
+                    style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '20px 80px',
+                        color: sungColor,
+                        WebkitTextStroke: '12px #ffffff',
+                        clipPath: `inset(0 ${100 - progress * 100}% 0 0)`,
+                        pointerEvents: 'none',
+                    }}
+                >
+                    {text}
+                </span>
+            )}
         </div>
     );
 }
@@ -140,11 +125,10 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     backgroundVideoDuration,
     sungColor = '#00ff88',
     unsungColor = '#ffffff',
-    fontSize = 65,
-    enableShadow = true, // Default changed to true
+    fontSize = 80,
     fps,
     lyricsLayout = 'traditional',
-    fontFamily = 'Roboto', // Default font
+    fontFamily = 'Oswald', // Default font
     videoLoop = false,
     renderForegroundOnly = false,
 }) => {
@@ -209,7 +193,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                             fontSize={fontSize}
                             opacity={1}
                             scale={1}
-                            enableShadow={enableShadow}
+
                             fontFamily={activeFontFamily}
                         />
                     </div>
@@ -228,7 +212,7 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     // Vertical padding: 10px (reduced from 40px)
     // Gap: 0px (reduced from 10px)
     const singleLineHeight = fontSize * 1.25 + 10;
-    const gap = 0;
+    const gap = 15;
     const bottomBase = 80;
 
     const slot1Bottom = bottomBase + singleLineHeight + gap;
