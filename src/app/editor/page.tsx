@@ -60,7 +60,7 @@ export default function EditorPage() {
     const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
     const [backgroundFileName, setBackgroundFileName] = useState<string | null>(null);
     const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
-    const [sungColor, setSungColor] = useState('#00ff88');
+    const [sungColor, setSungColor] = useState('#0000ff');
     const unsungColor = '#ffffff';
     const [fontSize, setFontSize] = useState<number | string>(80);
     const [backgroundDim, setBackgroundDim] = useState(0.50);
@@ -69,7 +69,7 @@ export default function EditorPage() {
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [videoLoop, setVideoLoop] = useState(false); // New Loop option
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
-    const [crf, setCrf] = useState(25);
+    const [crf, setCrf] = useState(18);
     const [renderSample, setRenderSample] = useState(false);
     const [lyricsLayout, setLyricsLayout] = useState<'traditional' | 'bottom'>('traditional');
     const [renderStartTime, setRenderStartTime] = useState<number | null>(null);
