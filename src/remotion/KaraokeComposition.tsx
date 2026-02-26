@@ -136,8 +136,43 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     const frameMs = (frame / fps) * 1000;
     const { durationInFrames } = useVideoConfig();
 
+    // Thời gian "báo trước" để hiện câu trước khi chữ bắt đầu chạy (ms)
+    const LEAD_IN_MS = 1000;
+
+    // Ngưỡng khoảng cách giữa 2 câu để áp dụng fade-in/fade-out (ms)
+    const GAP_THRESHOLD_MS = 5000;
+    // Thời gian fade-in / fade-out (ms)
+    const FADE_DURATION_MS = 300;
+
     // Map font name -> actual loaded CSS font-family (memoized; do NOT run every frame)
     const activeFontFamily = useMemo(() => resolveFontFamily(fontFamily), [fontFamily]);
+
+    // Pre-compute chain metadata for each caption.
+    // A "chain" is a maximal group of consecutive captions where each gap < GAP_THRESHOLD_MS.
+    // isChainStart: first caption of a chain (gets fade-in)
+    // isChainEnd: last caption of a chain (gets fade-out)
+    // chainStartMs: startMs of the first caption in the chain (dùng để ẩn cả chuỗi cho đến khi chuỗi bắt đầu)
+    const chainMeta = useMemo(() => {
+        // Pass 1: xác định isChainStart / isChainEnd
+        const meta = captions.map((cap, i) => {
+            const prev = captions[i - 1];
+            const next = captions[i + 1];
+            const gapBefore = prev ? cap.startMs - prev.endMs : Infinity;
+            const gapAfter = next ? next.startMs - cap.endMs : Infinity;
+            const isChainStart = i === 0 || gapBefore >= GAP_THRESHOLD_MS;
+            const isChainEnd = i === captions.length - 1 || gapAfter >= GAP_THRESHOLD_MS;
+            return { isChainStart, isChainEnd, chainStartMs: cap.startMs };
+        });
+        // Pass 2: lan truyền chainStartMs cho các câu không phải đầu chuỗi
+        let currentChainStartMs = 0;
+        for (let i = 0; i < meta.length; i++) {
+            if (meta[i].isChainStart) {
+                currentChainStartMs = captions[i].startMs;
+            }
+            meta[i].chainStartMs = currentChainStartMs;
+        }
+        return meta;
+    }, [captions]);
 
     // 2. Traditional & Bottom Layouts (Fixed slots)
     // Logic: Slot 1 (Even lines), Slot 2 (Odd lines)
@@ -180,6 +215,25 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
         if (index === -1) return null;
         const caption = captions[index];
         if (!caption) return null;
+        const meta = chainMeta[index];
+
+        // Ẩn toàn bộ chuỗi cho đến LEAD_IN_MS trước khi câu đầu tiên của chuỗi bắt đầu.
+        // - Câu đầu chuỗi: ẩn đến chainStartMs - LEAD_IN_MS
+        // - Câu trong chuỗi: cũng ẩn đến chainStartMs - LEAD_IN_MS → hiện bình thường khi chuỗi đã bắt đầu
+        const chainVisibleFrom = (meta?.chainStartMs ?? caption.startMs) - LEAD_IN_MS;
+        if (frameMs < chainVisibleFrom) {
+            return null;
+        }
+
+        // Opacity luôn = 1, không fade.
+        const opacity = 1;
+
+        // Ẩn câu cuối chuỗi sau khi hát xong.
+        if (meta?.isChainEnd) {
+            if (frameMs >= caption.endMs) {
+                return null;
+            }
+        }
 
         return (
             <div style={{ ...positionStyle, width: '100%', textAlign: align, padding: '0 80px' }}>
@@ -191,9 +245,8 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
                             sungColor={sungColor}
                             unsungColor={unsungColor}
                             fontSize={fontSize}
-                            opacity={1}
+                            opacity={opacity}
                             scale={1}
-
                             fontFamily={activeFontFamily}
                         />
                     </div>
