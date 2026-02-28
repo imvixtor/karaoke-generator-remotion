@@ -9,7 +9,7 @@ import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
 import { parseSrtContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
-import { Upload, Download, Play, Pause, Save, Settings, Layers, Type, Music, Image as ImageIcon, Video, FileText, Plus, X, Trash2, Moon, Sun, Monitor, Film } from 'lucide-react';
+import { Download, Settings, Layers, Type, Music, Image as ImageIcon, Video, X, Trash2, Moon, Sun, Monitor, Film } from 'lucide-react';
 import { useTheme } from "next-themes";
 
 const STORAGE_KEY = 'karaoke-editor-data';

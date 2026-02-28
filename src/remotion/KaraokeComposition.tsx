@@ -142,7 +142,6 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     // Ngưỡng khoảng cách giữa 2 câu để áp dụng fade-in/fade-out (ms)
     const GAP_THRESHOLD_MS = 5000;
     // Thời gian fade-in / fade-out (ms)
-    const FADE_DURATION_MS = 300;
 
     // Map font name -> actual loaded CSS font-family (memoized; do NOT run every frame)
     const activeFontFamily = useMemo(() => resolveFontFamily(fontFamily), [fontFamily]);

@@ -16,6 +16,8 @@ import { RenderControls } from "../components/RenderControls";
 import { Spacing } from "../components/Spacing";
 import { Tips } from "../components/Tips";
 import { Main } from "../remotion/MyComp/Main";
+import Link from "next/link";
+import { Image as ImageIcon } from "lucide-react";
 
 const Home: NextPage = () => {
   const [text, setText] = useState<string>(defaultMyCompProps.title);
@@ -57,6 +59,13 @@ const Home: NextPage = () => {
         <Spacing></Spacing>
         <Spacing></Spacing>
         <Tips></Tips>
+        <Spacing></Spacing>
+        <div className="flex justify-center mb-10">
+          <Link href="/thumbnail" className="px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg flex items-center gap-2 transition-all">
+            <ImageIcon className="w-5 h-5" />
+            Công cụ tạo Thumbnail Karaoke
+          </Link>
+        </div>
       </div>
     </div>
   );
