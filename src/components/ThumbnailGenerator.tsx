@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { toJpeg } from "html-to-image";
-import { Download, Upload, Image as ImageIcon, Music, Youtube, Wand2, RefreshCw, Palette, Link as LinkIcon, ZoomIn } from "lucide-react";
+import { Download, Upload, Image as ImageIcon, Music, Youtube, Wand2, RefreshCw, Palette, Link as LinkIcon, ZoomIn, MoveHorizontal, MoveVertical } from "lucide-react";
 
 export function ThumbnailGenerator() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -16,6 +16,8 @@ export function ThumbnailGenerator() {
     const [extraInfo, setExtraInfo] = useState("KARAOKE HẠ TONE");
     const [themeColor, setThemeColor] = useState("#ec4899");
     const [bgScale, setBgScale] = useState(1);
+    const [bgPosX, setBgPosX] = useState(50); // percentage 0-100
+    const [bgPosY, setBgPosY] = useState(50); // percentage 0-100
     const [imageUrlInput, setImageUrlInput] = useState("");
 
     const previewRef = useRef<HTMLDivElement>(null);
@@ -316,6 +318,38 @@ export function ThumbnailGenerator() {
                                 onChange={(e) => setBgScale(parseFloat(e.target.value))}
                             />
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><MoveHorizontal className="w-4 h-4 text-orange-400" /> Vị trí ngang (X)</span>
+                                <span className="text-white font-bold">{bgPosX}%</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                                value={bgPosX}
+                                onChange={(e) => setBgPosX(parseFloat(e.target.value))}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><MoveVertical className="w-4 h-4 text-purple-400" /> Vị trí dọc (Y)</span>
+                                <span className="text-white font-bold">{bgPosY}%</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                value={bgPosY}
+                                onChange={(e) => setBgPosY(parseFloat(e.target.value))}
+                            />
+                        </div>
                     </div>
 
                 </div>
@@ -344,16 +378,19 @@ export function ThumbnailGenerator() {
                             >
                                 {/* Background Image Layer */}
                                 <div
-                                    className="absolute inset-0 w-full h-full"
-                                    style={{
-                                        backgroundImage: `url(${selectedFrame})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        transform: `scale(${bgScale})`,
-                                        transformOrigin: 'center',
-                                        transition: 'transform 0.1s ease-out'
-                                    }}
-                                ></div>
+                                    className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
+                                >
+                                    <img
+                                        src={selectedFrame}
+                                        alt="Background"
+                                        className="w-full h-full object-cover max-w-none"
+                                        style={{
+                                            transform: `scale(${bgScale}) translate(${(bgPosX - 50) / bgScale}%, ${(bgPosY - 50) / bgScale}%)`,
+                                            transition: 'transform 0.1s ease-out'
+                                        }}
+                                        crossOrigin="anonymous"
+                                    />
+                                </div>
 
                                 {/* Dark gradient overlay to make text pop */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
