@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { toJpeg } from "html-to-image";
-import { Download, Upload, Image as ImageIcon, Music, Youtube, Wand2, RefreshCw, Palette } from "lucide-react";
+import { Download, Upload, Image as ImageIcon, Music, Youtube, Wand2, RefreshCw, Palette, Link as LinkIcon, ZoomIn } from "lucide-react";
 
 export function ThumbnailGenerator() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -15,6 +15,8 @@ export function ThumbnailGenerator() {
     const [channelName, setChannelName] = useState("TCK Kara");
     const [extraInfo, setExtraInfo] = useState("KARAOKE HẠ TONE");
     const [themeColor, setThemeColor] = useState("#ec4899");
+    const [bgScale, setBgScale] = useState(1);
+    const [imageUrlInput, setImageUrlInput] = useState("");
 
     const previewRef = useRef<HTMLDivElement>(null);
     const hiddenVideoRef = useRef<HTMLVideoElement>(null);
@@ -27,6 +29,20 @@ export function ThumbnailGenerator() {
             setVideoUrl(url);
             setFrames([]);
             setSelectedFrame(null);
+        }
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setSelectedFrame(url);
+        }
+    };
+
+    const handleApplyImageUrl = () => {
+        if (imageUrlInput) {
+            setSelectedFrame(imageUrlInput);
         }
     };
 
@@ -131,19 +147,53 @@ export function ThumbnailGenerator() {
                 <div className="lg:col-span-5 space-y-6 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 shadow-xl backdrop-blur-sm">
 
                     <div className="space-y-4">
-                        <label className="block border-2 border-dashed border-gray-700 hover:border-pink-500 bg-gray-950/50 transition-colors duration-200 rounded-xl p-8 cursor-pointer text-center group">
+                        <div className="text-sm font-medium text-gray-400 mb-2">1. Chọn Nền (Video, Ảnh, hoặc Link)</div>
+
+                        {/* Video Upload */}
+                        <label className="block border-2 border-dashed border-gray-700 hover:border-pink-500 bg-gray-950/50 transition-colors duration-200 rounded-xl p-4 cursor-pointer text-center group">
                             <input
                                 type="file"
                                 accept="video/*"
                                 onChange={handleVideoChange}
                                 className="hidden"
                             />
-                            <Upload className="w-12 h-12 mx-auto text-gray-500 mb-4 group-hover:text-pink-400 transition-colors" />
-                            <span className="text-gray-300 font-semibold text-lg block mb-1">
-                                {videoFile ? videoFile.name : "Kéo thả hoặc chọn video"}
+                            <Upload className="w-6 h-6 mx-auto text-gray-500 mb-2 group-hover:text-pink-400 transition-colors" />
+                            <span className="text-gray-300 font-semibold text-sm block mb-1">
+                                {videoFile ? videoFile.name : "Tải lên Video để trích xuất khung hình"}
                             </span>
-                            <span className="text-sm text-gray-500">Hỗ trợ MP4, WebM...</span>
                         </label>
+
+                        {/* Image Upload */}
+                        <label className="block border-2 border-dashed border-gray-700 hover:border-pink-500 bg-gray-950/50 transition-colors duration-200 rounded-xl p-4 cursor-pointer text-center group">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                            />
+                            <ImageIcon className="w-6 h-6 mx-auto text-gray-500 mb-2 group-hover:text-pink-400 transition-colors" />
+                            <span className="text-gray-300 font-semibold text-sm block mb-1">
+                                Tải lên Hình Ảnh (từ thiết bị)
+                            </span>
+                        </label>
+
+                        {/* Image URL */}
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-pink-500 transition-colors"
+                                value={imageUrlInput}
+                                onChange={(e) => setImageUrlInput(e.target.value)}
+                                placeholder="Hoặc dán link hình ảnh vào đây..."
+                            />
+                            <button
+                                onClick={handleApplyImageUrl}
+                                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium border border-gray-700 flex items-center gap-2"
+                            >
+                                <LinkIcon className="w-4 h-4" />
+                                Áp dụng
+                            </button>
+                        </div>
 
                         {videoUrl && (
                             <button
@@ -250,6 +300,22 @@ export function ThumbnailGenerator() {
                                 onChange={(e) => setThemeColor(e.target.value)}
                             />
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><ZoomIn className="w-4 h-4 text-green-400" /> Phóng to nền (Zoom)</span>
+                                <span className="text-white font-bold">{bgScale}x</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="0.05"
+                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                value={bgScale}
+                                onChange={(e) => setBgScale(parseFloat(e.target.value))}
+                            />
+                        </div>
                     </div>
 
                 </div>
@@ -275,13 +341,20 @@ export function ThumbnailGenerator() {
                             <div
                                 ref={previewRef}
                                 className="relative w-full aspect-video bg-black overflow-hidden select-none"
-                                style={{
-                                    // html2canvas understands basic CSS. using simple styles for max compatibility
-                                    backgroundImage: `url(${selectedFrame})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center'
-                                }}
                             >
+                                {/* Background Image Layer */}
+                                <div
+                                    className="absolute inset-0 w-full h-full"
+                                    style={{
+                                        backgroundImage: `url(${selectedFrame})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        transform: `scale(${bgScale})`,
+                                        transformOrigin: 'center',
+                                        transition: 'transform 0.1s ease-out'
+                                    }}
+                                ></div>
+
                                 {/* Dark gradient overlay to make text pop */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
 
