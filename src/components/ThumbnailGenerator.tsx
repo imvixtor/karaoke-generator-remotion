@@ -133,7 +133,7 @@ export function ThumbnailGenerator() {
     };
 
     return (
-        <div className="w-full max-w-7xl mx-auto py-10 px-4 md:px-8 space-y-8 animate-in fade-in zoom-in duration-500">
+        <div className="w-full max-w-[1600px] mx-auto py-10 px-4 md:px-8 space-y-8 animate-in fade-in zoom-in duration-500">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2 flex items-center gap-2">
@@ -144,9 +144,9 @@ export function ThumbnailGenerator() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
                 {/* Left Column: Form & Gallery */}
-                <div className="lg:col-span-5 space-y-6 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 shadow-xl backdrop-blur-sm">
+                <div className="xl:col-span-3 space-y-6 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 shadow-xl backdrop-blur-sm">
 
                     <div className="space-y-4">
                         <div className="text-sm font-medium text-gray-400 mb-2">1. Chọn Nền (Video, Ảnh, hoặc Link)</div>
@@ -180,17 +180,17 @@ export function ThumbnailGenerator() {
                         </label>
 
                         {/* Image URL */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col 2xl:flex-row gap-2">
                             <input
                                 type="text"
-                                className="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-pink-500 transition-colors"
+                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-pink-500 transition-colors"
                                 value={imageUrlInput}
                                 onChange={(e) => setImageUrlInput(e.target.value)}
                                 placeholder="Hoặc dán link hình ảnh vào đây..."
                             />
                             <button
                                 onClick={handleApplyImageUrl}
-                                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium border border-gray-700 flex items-center gap-2"
+                                className="w-full 2xl:w-auto px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium border border-gray-700 flex items-center justify-center gap-2"
                             >
                                 <LinkIcon className="w-4 h-4" />
                                 Áp dụng
@@ -252,110 +252,10 @@ export function ThumbnailGenerator() {
                             </div>
                         </div>
                     )}
-
-                    <div className="space-y-4 pt-4 border-t border-gray-800">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-2">
-                                <Music className="w-4 h-4 text-pink-400" /> Tên bài hát
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors font-bold text-lg"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Nhập tên bài hát..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-2">
-                                <Youtube className="w-4 h-4 text-red-500" /> Tên kênh
-                            </label>
-                            <input
-                                type="text"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
-                                value={channelName}
-                                onChange={(e) => setChannelName(e.target.value)}
-                                placeholder="Nhập tên kênh..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1">Thông tin bổ sung (Tone, Thể loại...)</label>
-                            <input
-                                type="text"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                                value={extraInfo}
-                                onChange={(e) => setExtraInfo(e.target.value)}
-                                placeholder="KARAOKE BEAT GỐC"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-2">
-                                <Palette className="w-4 h-4 text-blue-400" /> Màu chủ đạo
-                            </label>
-                            <input
-                                type="color"
-                                className="w-12 h-12 bg-transparent border-0 cursor-pointer rounded overflow-hidden p-0"
-                                value={themeColor}
-                                onChange={(e) => setThemeColor(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><ZoomIn className="w-4 h-4 text-green-400" /> Phóng to nền (Zoom)</span>
-                                <span className="text-white font-bold">{bgScale}x</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="1"
-                                max="3"
-                                step="0.05"
-                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
-                                value={bgScale}
-                                onChange={(e) => setBgScale(parseFloat(e.target.value))}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><MoveHorizontal className="w-4 h-4 text-orange-400" /> Vị trí ngang (X)</span>
-                                <span className="text-white font-bold">{bgPosX}%</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="1"
-                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                                value={bgPosX}
-                                onChange={(e) => setBgPosX(parseFloat(e.target.value))}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
-                                <span className="flex items-center gap-2"><MoveVertical className="w-4 h-4 text-purple-400" /> Vị trí dọc (Y)</span>
-                                <span className="text-white font-bold">{bgPosY}%</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="1"
-                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                                value={bgPosY}
-                                onChange={(e) => setBgPosY(parseFloat(e.target.value))}
-                            />
-                        </div>
-                    </div>
-
                 </div>
 
-                {/* Right Column: Live Preview */}
-                <div className="lg:col-span-7 space-y-6">
+                {/* Middle Column: Live Preview */}
+                <div className="xl:col-span-6 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-white uppercase tracking-wider">Xem trước</h2>
                         <button
@@ -413,7 +313,7 @@ export function ThumbnailGenerator() {
                                 {/* Channel Badge (Top Right) */}
                                 {channelName && (
                                     <div className="absolute top-4 right-4 md:top-6 md:right-6 max-w-[50%] flex justify-end z-20">
-                                        <h3 className="text-xl md:text-2xl lg:text-4xl font-black text-white text-right uppercase tracking-wider truncate"
+                                        <h3 className="text-xl md:text-2xl lg:text-2xl xl:text-3xl 2xl:text-4xl font-black text-white text-right uppercase tracking-wider truncate"
                                             style={{
                                                 textShadow: `
                                                     2px 2px 0 ${themeColor},
@@ -432,7 +332,7 @@ export function ThumbnailGenerator() {
                                 {/* Content */}
                                 <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 flex flex-col items-center text-center pb-12 md:pb-16">
 
-                                    <h2 className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-white text-center leading-tight tracking-tight uppercase relative z-10 w-full px-4 mx-auto block break-words"
+                                    <h2 className="text-2xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-white text-center leading-tight tracking-tight uppercase relative z-10 w-full px-4 mx-auto block break-words"
                                         style={{
                                             // A combination of text shadows to create a shiny stroke/3D effect compatible with html2canvas
                                             // Enhanced with a glowing aura using the theme color
@@ -469,6 +369,114 @@ export function ThumbnailGenerator() {
                     <p className="text-sm text-center text-gray-500 mt-4 leading-relaxed">
                         * Cần chọn một khung làm nền mới có thể tải xuống. <br /> Hình ảnh được xuất ra dưới dạng chất lượng cao (High DPI) thích hợp cho Youtube.
                     </p>
+                </div>
+
+                {/* Right Column: Text & Adjustments */}
+                <div className="xl:col-span-3 space-y-6 bg-gray-900/50 p-6 rounded-2xl border border-gray-800 shadow-xl backdrop-blur-sm">
+                    <div className="space-y-4">
+                        <div className="text-sm font-medium text-gray-400 mb-2">2. Nội Dung & Màu Sắc</div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-2">
+                                <Music className="w-4 h-4 text-pink-400" /> Tên bài hát
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors font-bold text-lg"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Nhập tên bài hát..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-2">
+                                <Youtube className="w-4 h-4 text-red-500" /> Tên kênh
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                                value={channelName}
+                                onChange={(e) => setChannelName(e.target.value)}
+                                placeholder="Nhập tên kênh..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Thông tin bổ sung (Tone, Thể loại...)</label>
+                            <input
+                                type="text"
+                                className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                                value={extraInfo}
+                                onChange={(e) => setExtraInfo(e.target.value)}
+                                placeholder="KARAOKE BEAT GỐC"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-2">
+                                <Palette className="w-4 h-4 text-blue-400" /> Màu chủ đạo
+                            </label>
+                            <input
+                                type="color"
+                                className="w-12 h-12 bg-transparent border-0 cursor-pointer rounded overflow-hidden p-0 block"
+                                value={themeColor}
+                                onChange={(e) => setThemeColor(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-6 border-t border-gray-800">
+                        <div className="text-sm font-medium text-gray-400 mb-2">3. Điều Chỉnh Nền</div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><ZoomIn className="w-4 h-4 text-green-400" /> Phóng to (Zoom)</span>
+                                <span className="text-white font-bold">{bgScale}x</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="0.05"
+                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                value={bgScale}
+                                onChange={(e) => setBgScale(parseFloat(e.target.value))}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><MoveHorizontal className="w-4 h-4 text-orange-400" /> Ngang (X)</span>
+                                <span className="text-white font-bold">{bgPosX}%</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                                value={bgPosX}
+                                onChange={(e) => setBgPosX(parseFloat(e.target.value))}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-2"><MoveVertical className="w-4 h-4 text-purple-400" /> Dọc (Y)</span>
+                                <span className="text-white font-bold">{bgPosY}%</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                value={bgPosY}
+                                onChange={(e) => setBgPosY(parseFloat(e.target.value))}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
