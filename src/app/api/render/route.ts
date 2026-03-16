@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const renderId = uuidv4();
     const body = await request.json();
     let inputProps: KaraokeCompositionProps;
-    let options: { crf?: number; renderSample?: boolean } = {};
+    let options: { renderSample?: boolean } = {};
 
     // Check if the body has inputProps and options structure or just inputProps (legacy)
     if (body.inputProps) {
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
             // -pix_fmt yuv420p for compatibility
 
             const filterStr = filterComplex.join(";");
-            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} -c:v h264_nvenc -crf ${options.crf ?? 23} -preset medium -c:a aac -b:a 192k -r ${fps} -t ${durationSec} -y "${finalOutputPath}"`;
+            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} -c:v h264_nvenc -preset p6 -rc vbr -multipass fullres -b:v 5M -maxrate:v 8M -bufsize 10M -spatial-aq 1 -temporal-aq 1 -rc-lookahead 20 -c:a aac -b:a 192k -r 30 -y "${finalOutputPath}"`;
 
             console.log(`[${renderId}] Executing FFmpeg: ${cmd}`);
 

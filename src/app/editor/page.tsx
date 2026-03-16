@@ -69,7 +69,6 @@ export default function EditorPage() {
     const [backgroundVideoStartTime, setBackgroundVideoStartTime] = useState<number | string>(0);
     const [videoLoop, setVideoLoop] = useState(false); // New Loop option
     const [renderStatus, setRenderStatus] = useState<string | null>(null);
-    const [crf, setCrf] = useState(18);
     const [renderSample, setRenderSample] = useState(false);
     const [lyricsLayout, setLyricsLayout] = useState<'traditional' | 'bottom'>('traditional');
     const [renderStartTime, setRenderStartTime] = useState<number | null>(null);
@@ -387,7 +386,6 @@ export default function EditorPage() {
             audioFileName,
             backgroundUrl,
             backgroundFileName,
-            crf,
             renderSample,
             lyricsLayout,
             fontFamily,
@@ -413,7 +411,7 @@ export default function EditorPage() {
                 window.clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, crf, renderSample, lyricsLayout, fontFamily, videoLoop]);
+    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, renderSample, lyricsLayout, fontFamily, videoLoop]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -433,7 +431,6 @@ export default function EditorPage() {
                 if (data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
                 if (data.audioFileName) setAudioFileName(data.audioFileName);
                 if (data.backgroundFileName) setBackgroundFileName(data.backgroundFileName);
-                if (data.crf) setCrf(data.crf);
                 if (data.renderSample !== undefined) setRenderSample(data.renderSample);
                 if (data.lyricsLayout) setLyricsLayout(data.lyricsLayout);
                 if (data.fontFamily) setFontFamily(data.fontFamily);
@@ -513,7 +510,7 @@ export default function EditorPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     inputProps,
-                    options: { crf, renderSample }
+                    options: { renderSample }
                 }),
             });
             if (!resp.ok) {
@@ -579,7 +576,7 @@ export default function EditorPage() {
             setRenderStatus('Render thất bại. Kiểm tra console.');
             setRenderProgress(null);
         }
-    }, [playerProps, currentAudioSrc, captions.length, crf, renderSample]);
+    }, [playerProps, currentAudioSrc, captions.length, renderSample]);
 
     // Timer effect
     useEffect(() => {
@@ -976,18 +973,6 @@ export default function EditorPage() {
                     <div className="flex-shrink-0 px-6 py-2 bg-card border-t border-border flex justify-between items-center text-xs">
                         <div className="flex items-center gap-4">
                             <span className="text-muted-foreground font-medium uppercase tracking-wider">Render Settings:</span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">CRF: {crf}</span>
-                                <input
-                                    type="range"
-                                    min={10}
-                                    max={40}
-                                    step={1}
-                                    value={crf}
-                                    onChange={(e) => setCrf(Number(e.target.value))}
-                                    className="w-24 accent-primary h-1 bg-secondary rounded cursor-pointer"
-                                />
-                            </div>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
