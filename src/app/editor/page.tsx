@@ -112,6 +112,32 @@ export default function EditorPage() {
         setSelectedIndexes(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
     }, []);
 
+    const handleShiftCaptions = useCallback((offsetMs: number) => {
+        setCaptions(prev => {
+            if (prev.length === 0) return prev;
+            const updated = prev.map(cap => {
+                const startMs = Math.max(0, cap.startMs + offsetMs);
+                const endMs = Math.max(0, cap.endMs + offsetMs);
+                const timestampMs = cap.timestampMs !== null ? Math.max(0, cap.timestampMs + offsetMs) : null;
+
+                const segments = cap.segments?.map(seg => ({
+                    ...seg,
+                    startMs: Math.max(0, seg.startMs + offsetMs),
+                    endMs: Math.max(0, seg.endMs + offsetMs),
+                }));
+
+                return {
+                    ...cap,
+                    startMs,
+                    endMs,
+                    timestampMs,
+                    ...(segments ? { segments } : {}),
+                };
+            });
+            return updated.sort((a, b) => a.startMs - b.startMs);
+        });
+    }, []);
+
     // Zoom constraints
     const minZoom = 20;
     const maxZoom = 150;
@@ -998,6 +1024,7 @@ export default function EditorPage() {
                         onImportSrt={handleSrtFile}
                         onExportSrt={handleExportSrt}
                         onDeleteCaption={handleDeleteCaption}
+                        onShiftCaptions={handleShiftCaptions}
                     />
                 </aside>
 

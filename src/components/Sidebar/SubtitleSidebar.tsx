@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { KaraokeCaption } from '../../types/karaoke';
 import { PlayerRef } from '@remotion/player';
-import { Upload, Download, List, Clock, Edit2, Trash2 } from 'lucide-react';
+import { Upload, Download, List, Clock, Edit2, Trash2, Timer } from 'lucide-react';
 
 interface SubtitleSidebarProps {
     captions: KaraokeCaption[];
@@ -10,6 +10,7 @@ interface SubtitleSidebarProps {
     onImportSrt: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onExportSrt: () => void;
     onDeleteCaption: (index: number) => void;
+    onShiftCaptions?: (offsetMs: number) => void;
 }
 
 // Hook to subscribe to player frame updates
@@ -49,10 +50,23 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
     onImportSrt,
     onExportSrt,
     onDeleteCaption,
+    onShiftCaptions,
 }) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
     const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    const [isShifting, setIsShifting] = useState(false);
+    const [shiftValue, setShiftValue] = useState('0.5');
+
+    const handleApplyShift = () => {
+        const offsetSec = parseFloat(shiftValue);
+        if (isNaN(offsetSec)) return;
+        const offsetMs = offsetSec * 1000;
+        if (onShiftCaptions) {
+            onShiftCaptions(offsetMs);
+        }
+    };
 
     const currentFrame = usePlayerFrame(player);
     const currentTime = (currentFrame / FPS) * 1000;
@@ -121,6 +135,13 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                     <List className="w-3 h-3" /> Phụ đề ({captions.length})
                 </h3>
                 <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => setIsShifting(prev => !prev)}
+                        className={`p-1.5 rounded transition-colors ${isShifting ? 'bg-primary/20 text-primary' : 'hover:bg-secondary text-muted-foreground hover:text-foreground'}`}
+                        title="Dịch chuyển phụ đề"
+                    >
+                        <Timer className="w-4 h-4" />
+                    </button>
                     <label className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors" title="Nhập SRT">
                         <Upload className="w-4 h-4" />
                         <input type="file" accept=".srt,.ass,text/plain" onChange={onImportSrt} className="hidden" />
@@ -134,6 +155,45 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                     </button>
                 </div>
             </div>
+
+            {isShifting && (
+                <div className="p-3 border-b border-border bg-secondary/10 flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                            <Timer className="w-3.5 h-3.5 text-primary" /> Dịch chuyển thời gian (giây)
+                        </span>
+                        <button
+                            onClick={() => setIsShifting(false)}
+                            className="text-[10px] text-muted-foreground hover:text-foreground font-semibold"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="number"
+                            step="0.1"
+                            placeholder="Ví dụ: -0.5 hoặc 0.5"
+                            value={shiftValue}
+                            onChange={(e) => setShiftValue(e.target.value)}
+                            className="flex-1 bg-input text-foreground text-xs px-2.5 py-1.5 rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                        />
+                        <button
+                            onClick={handleApplyShift}
+                            disabled={!shiftValue || isNaN(parseFloat(shiftValue))}
+                            className="bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors font-semibold"
+                        >
+                            Áp dụng
+                        </button>
+                    </div>
+                    <div className="flex gap-1.5">
+                        <button onClick={() => setShiftValue('-0.5')} className="flex-1 bg-secondary hover:bg-secondary/80 text-[10px] py-1 rounded text-foreground font-mono transition-colors border border-border/30">-0.5s</button>
+                        <button onClick={() => setShiftValue('-0.1')} className="flex-1 bg-secondary hover:bg-secondary/80 text-[10px] py-1 rounded text-foreground font-mono transition-colors border border-border/30">-0.1s</button>
+                        <button onClick={() => setShiftValue('+0.1')} className="flex-1 bg-secondary hover:bg-secondary/80 text-[10px] py-1 rounded text-foreground font-mono transition-colors border border-border/30">+0.1s</button>
+                        <button onClick={() => setShiftValue('+0.5')} className="flex-1 bg-secondary hover:bg-secondary/80 text-[10px] py-1 rounded text-foreground font-mono transition-colors border border-border/30">+0.5s</button>
+                    </div>
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar bg-background/50">
                 {captions.length === 0 ? (
