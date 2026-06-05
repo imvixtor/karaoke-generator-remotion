@@ -40,6 +40,132 @@ const resolveFontFamily = (selected: string) => {
     }
 };
 
+/** Phân tích và tính toán tiến trình hiển thị + chuỗi hiển thị đã gộp dấu cách */
+function getCaptionDisplayAndProgress(caption: KaraokeCaption, frameMs: number): {
+    displayText: string;
+    progress: number;
+} {
+    const { startMs, endMs, text } = caption;
+    const durationMs = endMs - startMs;
+    
+    // Tạo sẵn chuỗi hiển thị rút gọn (gộp nhiều dấu cách thành 1)
+    const collapsedText = text.replace(/\s+/g, ' ');
+
+    if (durationMs <= 0) {
+        return { displayText: collapsedText, progress: 1 };
+    }
+
+    const t = frameMs - startMs;
+    if (t <= 0) {
+        return { displayText: collapsedText, progress: 0 };
+    }
+    if (t >= durationMs) {
+        return { displayText: collapsedText, progress: 1 };
+    }
+
+    const parts = text.split(/(\s+)/);
+    if (parts.length <= 1) {
+        return { displayText: collapsedText, progress: t / durationMs };
+    }
+
+    // Biểu diễn các token
+    const tokens = parts.map((part) => {
+        const isSpace = /^\s+$/.test(part);
+        return {
+            text: part,
+            displayText: isSpace ? ' ' : part,
+            isSpace,
+            widthWeight: 0,
+            timeWeight: 0,
+            startTimeMs: 0,
+            endTimeMs: 0,
+            startProgress: 0,
+            endProgress: 0,
+        };
+    });
+
+    const displayText = tokens.map((tk) => tk.displayText).join('');
+
+    // Tính trọng số độ rộng hiển thị (widthWeight) dựa trên token.displayText
+    const getCharWidthWeight = (c: string) => (c === ' ' || /\s/.test(c)) ? 0.4 : 1.0;
+
+    let totalWidthWeight = 0;
+    for (const token of tokens) {
+        let w = 0;
+        for (let i = 0; i < token.displayText.length; i++) {
+            w += getCharWidthWeight(token.displayText[i]);
+        }
+        token.widthWeight = w;
+        totalWidthWeight += w;
+    }
+
+    // Tính trọng số thời gian mặc định cho các từ dựa trên token.text (bản gốc)
+    for (const token of tokens) {
+        if (!token.isSpace) {
+            token.timeWeight = token.text.length;
+        }
+    }
+
+    // Chuyển trọng số thời gian của khoảng trắng (nếu độ dài > 1) cho từ phía trước
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        if (token.isSpace) {
+            if (token.text.length > 1) {
+                let foundPrecedingWord = false;
+                for (let j = i - 1; j >= 0; j--) {
+                    if (!tokens[j].isSpace) {
+                        tokens[j].timeWeight += token.text.length;
+                        foundPrecedingWord = true;
+                        break;
+                    }
+                }
+                if (!foundPrecedingWord) {
+                    token.timeWeight = token.text.length;
+                }
+            } else {
+                token.timeWeight = 0;
+            }
+        }
+    }
+
+    let totalTimeWeight = 0;
+    for (const token of tokens) {
+        totalTimeWeight += token.timeWeight;
+    }
+
+    if (totalTimeWeight <= 0) {
+        return { displayText, progress: t / durationMs };
+    }
+
+    let currentWidthWeight = 0;
+    let currentTimeWeight = 0;
+    for (const token of tokens) {
+        token.startProgress = currentWidthWeight / totalWidthWeight;
+        currentWidthWeight += token.widthWeight;
+        token.endProgress = currentWidthWeight / totalWidthWeight;
+
+        token.startTimeMs = (currentTimeWeight / totalTimeWeight) * durationMs;
+        currentTimeWeight += token.timeWeight;
+        token.endTimeMs = (currentTimeWeight / totalTimeWeight) * durationMs;
+    }
+
+    for (const token of tokens) {
+        if (t >= token.startTimeMs && t <= token.endTimeMs) {
+            const tokenDur = token.endTimeMs - token.startTimeMs;
+            if (tokenDur <= 0) {
+                return { displayText, progress: token.endProgress };
+            }
+            const tokenProgress = (t - token.startTimeMs) / tokenDur;
+            return {
+                displayText,
+                progress: token.startProgress + tokenProgress * (token.endProgress - token.startProgress)
+            };
+        }
+    }
+
+    return { displayText, progress: t / durationMs };
+}
+
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
 function KaraokeSubtitleLine({
     caption,
@@ -60,9 +186,7 @@ function KaraokeSubtitleLine({
     scale: number;
     fontFamily: string;
 }) {
-    const { startMs, endMs, text } = caption;
-    const durationMs = endMs - startMs;
-    const progress = durationMs <= 0 ? 1 : Math.min(1, Math.max(0, (frameMs - startMs) / durationMs));
+    const { displayText, progress } = getCaptionDisplayAndProgress(caption, frameMs);
 
     return (
         <div
@@ -86,7 +210,7 @@ function KaraokeSubtitleLine({
         >
             {/* Unsung layer (base) */}
             <span style={{ color: unsungColor, WebkitTextStroke: '12px #000000' }}>
-                {text}
+                {displayText}
             </span>
             {/* Sung layer (overlay, smooth clip across entire line) */}
             {progress > 0 && (
@@ -107,7 +231,7 @@ function KaraokeSubtitleLine({
                         pointerEvents: 'none',
                     }}
                 >
-                    {text}
+                    {displayText}
                 </span>
             )}
         </div>
