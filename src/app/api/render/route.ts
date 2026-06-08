@@ -12,6 +12,28 @@ const renderProgress: Record<string, { progress: number; status: string; filenam
 const renderCancels: Record<string, () => void> = {};
 
 import { KaraokeCompositionProps } from "../../../types/karaoke";
+import os from "os";
+
+// Cache for encoder detection
+let cachedEncoder: "h264_nvenc" | "libx264" | null = null;
+
+async function getAvailableEncoder(): Promise<"h264_nvenc" | "libx264"> {
+    if (cachedEncoder !== null) return cachedEncoder;
+    try {
+        const cp = await import("child_process");
+        const util = await import("util");
+        const execAsync = util.promisify(cp.exec);
+        const { stdout } = await execAsync("ffmpeg -encoders");
+        if (stdout.includes("h264_nvenc")) {
+            cachedEncoder = "h264_nvenc";
+        } else {
+            cachedEncoder = "libx264";
+        }
+    } catch (e) {
+        cachedEncoder = "libx264";
+    }
+    return cachedEncoder;
+}
 
 export async function POST(request: NextRequest) {
     const renderId = uuidv4();
@@ -122,19 +144,23 @@ export async function POST(request: NextRequest) {
                     return undefined;
                 })();
 
+                const cpuCount = os.cpus().length;
+                const concurrency = Math.max(1, Math.floor(cpuCount / 2));
+
                 await renderFrames({
                     composition,
                     serveUrl: bundleLocation,
                     inputProps: step1InputProps,
                     imageFormat: 'png',
                     outputDir: foregroundDir,
+                    concurrency,
                     chromiumOptions: {
                         gl: autoDetectedGl,
                     },
                     frameRange: options.renderSample ? [0, Math.min(30 * 30, durationInFrames) - 1] : undefined,
                     cancelSignal,
                     onStart: () => {
-                        console.log(`[${renderId}] Render started`);
+                        console.log(`[${renderId}] Render started with concurrency ${concurrency}`);
                     },
                     onFrameUpdate: (rendered) => {
                         if (isCancelled) return;
@@ -147,7 +173,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 if (isCancelled) throw new Error("Cancelled");
-                console.log(`[${renderId}] Step 1 Complete. Renaming files...`);
+                console.log(`[${renderId}] Step 1 Complete. Renaming files in parallel...`);
 
                 // Normalize filenames to fg_%04d.png for FFmpeg
                 try {
@@ -161,14 +187,16 @@ export async function POST(request: NextRequest) {
                         return numA - numB;
                     });
 
-                    // Rename
-                    for (let i = 0; i < files.length; i++) {
-                        const oldPath = join(foregroundDir, files[i]);
+                    // Rename in parallel using fs.promises
+                    const renamePromises = files.map((file, i) => {
+                        const oldPath = join(foregroundDir, file);
                         const newPath = join(foregroundDir, `fg_${String(i).padStart(4, '0')}.png`);
                         if (oldPath !== newPath) {
-                            fs.renameSync(oldPath, newPath);
+                            return fs.promises.rename(oldPath, newPath);
                         }
-                    }
+                        return Promise.resolve();
+                    });
+                    await Promise.all(renamePromises);
                 } catch (e) {
                     console.error("Renaming error:", e);
                     // Continue? If renaming fails, ffmpeg might fail.
@@ -299,15 +327,34 @@ export async function POST(request: NextRequest) {
                 mapAudio = `-map ${audioIndex}:a`;
             }
 
+            // Dynamic encoder and optimized params
+            const encoder = await getAvailableEncoder();
+            const isNvidia = encoder === "h264_nvenc";
+
+            const hwaccelFlag = isNvidia ? "-hwaccel cuda" : "";
+            
+            // Video codec & quality optimization:
+            // 1. Nvidia GPU:
+            //    - Use `-preset p4` for wide compatibility.
+            //    - Use VBR Constant Quality `-cq 26` with targeted average `-b:v 1.8M` & `-maxrate:v 3.5M`.
+            //      This keeps the background clear while reducing the 3.5min video size to ~45-65MB.
+            //    - Spatial-aq / Temporal-aq remain enabled to keep text edges crisp.
+            // 2. CPU Fallback (libx264):
+            //    - Use `-crf 23` (FFmpeg default, excellent quality/size balance) to keep the video sharp.
+            //    - Set `-preset medium` for a great balance between compression speed and quality.
+            const videoCodecParams = isNvidia
+                ? "-c:v h264_nvenc -preset p4 -rc vbr -cq 26 -b:v 1.8M -maxrate:v 3.5M -bufsize 7M -spatial-aq 1 -temporal-aq 1 -rc-lookahead 20 -profile:v high -pix_fmt yuv420p"
+                : "-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p";
+
+            const filterStr = filterComplex.join(";");
+            
             // Assemble Command
             // Use -y to overwrite
             // -t durationSec to limit output
-            // -pix_fmt yuv420p for compatibility
+            // Forced output framerate to 30fps as requested: `-r 30`.
+            const cmd = `ffmpeg ${hwaccelFlag} ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} ${videoCodecParams} -c:a aac -b:a 192k -r 30 -t ${durationSec} -y "${finalOutputPath}"`;
 
-            const filterStr = filterComplex.join(";");
-            const cmd = `ffmpeg -hwaccel cuda ${inputs.join(" ")} -filter_complex "${filterStr}" -map "${finalOutputLabel}" ${mapAudio} -c:v h264_nvenc -preset p6 -rc vbr -multipass fullres -b:v 5M -maxrate:v 8M -bufsize 10M -spatial-aq 1 -temporal-aq 1 -rc-lookahead 20 -c:a aac -b:a 192k -r 30 -y "${finalOutputPath}"`;
-
-            console.log(`[${renderId}] Executing FFmpeg: ${cmd}`);
+            console.log(`[${renderId}] Executing FFmpeg (${encoder}): ${cmd}`);
 
             // Execute
             await exec(cmd);
