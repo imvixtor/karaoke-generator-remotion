@@ -6,10 +6,10 @@ import { KaraokeComposition } from '../../remotion/KaraokeComposition';
 import type { KaraokeCaption, BackgroundType, KaraokeCompositionProps } from '../../types/karaoke';
 import Timeline from '../../components/Timeline/Timeline';
 import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
-import { parseSrtContent } from '../../lib/parseSrt';
+import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
-import { Download, Settings, Layers, Type, Music, Image as ImageIcon, Video, X, Trash2, Moon, Sun, Monitor, Film } from 'lucide-react';
+import { Download, Settings, Layers, Type, Music, Image as ImageIcon, Video, X, Trash2, Moon, Sun, Monitor, Film, Lock } from 'lucide-react';
 import { useTheme } from "next-themes";
 
 const STORAGE_KEY = 'karaoke-editor-data';
@@ -34,6 +34,34 @@ function formatSrtTime(ms: number): string {
     const milliseconds = ms % 1000;
 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+}
+
+// Helper: Xóa các dòng đối thoại từ file ASS theo các chỉ số đã chọn
+function deleteDialogueLinesFromAss(assContent: string, indicesToDelete: number[]): string {
+    const lines = assContent.split('\n');
+    let dialogueCount = 0;
+    let inEvents = false;
+    const newLines: string[] = [];
+    const toDeleteSet = new Set(indicesToDelete);
+
+    for (const rawLine of lines) {
+        const trimmed = rawLine.trim();
+        if (trimmed.startsWith('[Events]')) {
+            inEvents = true;
+        } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            inEvents = false;
+        }
+
+        if (inEvents && trimmed.startsWith('Dialogue:')) {
+            if (toDeleteSet.has(dialogueCount)) {
+                dialogueCount++;
+                continue;
+            }
+            dialogueCount++;
+        }
+        newLines.push(rawLine);
+    }
+    return newLines.join('\n');
 }
 
 const FPS = 30;
@@ -79,6 +107,9 @@ export default function EditorPage() {
     const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
     const [timelineWarning, setTimelineWarning] = useState<string | null>(null);
 
+    const [subtitleType, setSubtitleType] = useState<'srt' | 'ass' | null>(null);
+    const [rawAssContent, setRawAssContent] = useState<string | null>(null);
+
     // Clear warning after 3s
     useEffect(() => {
         if (timelineWarning) {
@@ -91,28 +122,43 @@ export default function EditorPage() {
         if (selectedIndexes.length > 0) {
             // Delete selected
             setCaptions(prev => prev.filter((_, i) => !selectedIndexes.includes(i)));
+            if (subtitleType === 'ass' && rawAssContent) {
+                setRawAssContent(prev => prev ? deleteDialogueLinesFromAss(prev, selectedIndexes) : prev);
+            }
             setSelectedIndexes([]);
         } else {
-            // Delete all
-            if (window.confirm('Bạn có chắc chắn muốn xóa hết phụ đề không?')) {
+            // Delete all / Remove ASS file
+            const confirmMsg = subtitleType === 'ass' 
+                ? 'Bạn có chắc chắn muốn gỡ bỏ hoàn toàn file phụ đề ASS và tất cả phụ đề hiện tại không?'
+                : 'Bạn có chắc chắn muốn xóa hết phụ đề không?';
+            if (window.confirm(confirmMsg)) {
                 setCaptions([]);
+                if (subtitleType === 'ass') {
+                    setSubtitleType(null);
+                    setRawAssContent(null);
+                }
+                setSelectedIndexes([]);
             }
         }
-    }, [selectedIndexes]);
+    }, [selectedIndexes, subtitleType, rawAssContent]);
 
     const handleUpdateCaptionText = useCallback((index: number, newText: string) => {
+        if (subtitleType === 'ass') return;
         setCaptions(prev => prev.map((cap, i) =>
             i === index ? { ...cap, text: newText } : cap
         ));
-    }, []);
+    }, [subtitleType]);
 
     const handleDeleteCaption = useCallback((index: number) => {
         setCaptions(prev => prev.filter((_, i) => i !== index));
-        // Clear selection if deleted
+        if (subtitleType === 'ass' && rawAssContent) {
+            setRawAssContent(prev => prev ? deleteDialogueLinesFromAss(prev, [index]) : prev);
+        }
         setSelectedIndexes(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
-    }, []);
+    }, [subtitleType, rawAssContent]);
 
     const handleShiftCaptions = useCallback((offsetMs: number) => {
+        if (subtitleType === 'ass') return;
         setCaptions(prev => {
             if (prev.length === 0) return prev;
             const updated = prev.map(cap => {
@@ -136,7 +182,7 @@ export default function EditorPage() {
             });
             return updated.sort((a, b) => a.startMs - b.startMs);
         });
-    }, []);
+    }, [subtitleType]);
 
     // Zoom constraints
     const minZoom = 20;
@@ -146,8 +192,6 @@ export default function EditorPage() {
     const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, minZoom));
     const handleSetZoom = (val: number) => setZoom(Math.max(minZoom, Math.min(maxZoom, val)));
 
-    // ... (rest of code)
-
     const handleDeleteKey = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Delete' || e.key === 'Backspace') {
             // Only if not typing in inputs
@@ -156,11 +200,14 @@ export default function EditorPage() {
 
             if (selectedIndexes.length > 0) {
                 setCaptions(prev => prev.filter((_, i) => !selectedIndexes.includes(i)));
+                if (subtitleType === 'ass' && rawAssContent) {
+                    setRawAssContent(prev => prev ? deleteDialogueLinesFromAss(prev, selectedIndexes) : prev);
+                }
                 setSelectedIndexes([]);
                 e.preventDefault();
             }
         }
-    }, [selectedIndexes]);
+    }, [selectedIndexes, subtitleType, rawAssContent]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleDeleteKey);
@@ -276,12 +323,24 @@ export default function EditorPage() {
     const handleSrtFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        const fileName = file.name.toLowerCase();
         const reader = new FileReader();
         reader.onload = () => {
             const text = String(reader.result);
-            setCaptions(parseSrtContent(text));
+            const isAss = fileName.endsWith('.ass') || text.includes('[Script Info]') || text.includes('Dialogue:');
+            setSelectedIndexes([]);
+            if (isAss) {
+                setCaptions(parseAssContent(text));
+                setSubtitleType('ass');
+                setRawAssContent(text);
+            } else {
+                setCaptions(parseSrtContent(text));
+                setSubtitleType('srt');
+                setRawAssContent(null);
+            }
         };
         reader.readAsText(file, 'utf-8');
+        e.target.value = '';
     }, []);
 
 
@@ -315,6 +374,23 @@ export default function EditorPage() {
     }, []);
 
     const handleExportSrt = useCallback(() => {
+        if (subtitleType === 'ass') {
+            if (!rawAssContent) {
+                alert('Không tìm thấy nội dung file ASS gốc.');
+                return;
+            }
+            const blob = new Blob([rawAssContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'subtitles.ass';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            return;
+        }
+
         if (captions.length === 0) {
             alert('Chưa có phụ đề để xuất.');
             return;
@@ -336,13 +412,14 @@ export default function EditorPage() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-    }, [captions]);
+    }, [captions, subtitleType, rawAssContent]);
 
 
 
 
 
     const addCaption = useCallback(() => {
+        if (subtitleType === 'ass') return;
         const audioDuration = audioDurationSec ?? 30;
         let currentTime = 0;
 
@@ -394,7 +471,7 @@ export default function EditorPage() {
         const newIndex = newCaptions.indexOf(newCaption);
         setSelectedIndexes([newIndex]);
 
-    }, [captions, audioDurationSec]);
+    }, [captions, audioDurationSec, subtitleType]);
 
 
 
@@ -416,6 +493,8 @@ export default function EditorPage() {
             lyricsLayout,
             fontFamily,
             videoLoop,
+            subtitleType,
+            rawAssContent,
         };
 
         // Debounce: chỉ ghi sau 300ms kể từ thay đổi cuối
@@ -437,7 +516,7 @@ export default function EditorPage() {
                 window.clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, renderSample, lyricsLayout, fontFamily, videoLoop]);
+    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, renderSample, lyricsLayout, fontFamily, videoLoop, subtitleType, rawAssContent]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -461,6 +540,8 @@ export default function EditorPage() {
                 if (data.lyricsLayout) setLyricsLayout(data.lyricsLayout);
                 if (data.fontFamily) setFontFamily(data.fontFamily);
                 if (data.videoLoop !== undefined) setVideoLoop(data.videoLoop);
+                if (data.subtitleType) setSubtitleType(data.subtitleType);
+                if (data.rawAssContent) setRawAssContent(data.rawAssContent);
             } catch (e) {
                 console.error('Failed to load saved data:', e);
             }
@@ -1025,6 +1106,7 @@ export default function EditorPage() {
                         onExportSrt={handleExportSrt}
                         onDeleteCaption={handleDeleteCaption}
                         onShiftCaptions={handleShiftCaptions}
+                        subtitleType={subtitleType}
                     />
                 </aside>
 
@@ -1039,18 +1121,31 @@ export default function EditorPage() {
 
                         <div className="flex items-center gap-2">
                             <div className="flex items-center bg-secondary rounded-lg border border-border overflow-hidden">
-                                <button onClick={handleZoomOut} className="px-3 py-1 text-xs hover:bg-background transition-colors">-</button>
+                                <button
+                                    onClick={handleZoomOut}
+                                    disabled={subtitleType === 'ass'}
+                                    className={`px-3 py-1 text-xs hover:bg-background transition-colors ${subtitleType === 'ass' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    -
+                                </button>
                                 <span className="text-[10px] px-2 text-muted-foreground font-mono border-x border-border min-w-[60px] text-center">
                                     {(zoom / FPS).toFixed(1)}x
                                 </span>
-                                <button onClick={handleZoomIn} className="px-3 py-1 text-xs hover:bg-background transition-colors">+</button>
+                                <button
+                                    onClick={handleZoomIn}
+                                    disabled={subtitleType === 'ass'}
+                                    className={`px-3 py-1 text-xs hover:bg-background transition-colors ${subtitleType === 'ass' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    +
+                                </button>
                             </div>
 
                             <div className="h-4 w-px bg-border mx-2" />
 
                             <button
                                 onClick={() => addCaption()}
-                                className="px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-xs font-medium transition-all"
+                                disabled={subtitleType === 'ass'}
+                                className={`px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-xs font-medium transition-all ${subtitleType === 'ass' ? 'opacity-50 cursor-not-allowed bg-primary/40 text-primary-foreground/40 hover:bg-primary/40' : ''}`}
                             >
                                 + Thêm Sub
                             </button>
@@ -1066,9 +1161,9 @@ export default function EditorPage() {
                                 <button
                                     onClick={handleClearCaptions}
                                     className="px-3 py-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md text-xs font-medium transition-all"
-                                    title="Xóa tất cả"
+                                    title={subtitleType === 'ass' ? "Gỡ bỏ file phụ đề ASS" : "Xóa tất cả"}
                                 >
-                                    Xóa hết
+                                    {subtitleType === 'ass' ? "Gỡ file ASS" : "Xóa hết"}
                                 </button>
                             )}
                         </div>
@@ -1081,24 +1176,40 @@ export default function EditorPage() {
                                 {timelineWarning}
                             </div>
                         )}
-                        <div className="flex-1 overflow-hidden">
-                            <Timeline
-                                audioUrl={currentAudioSrc}
-                                captions={captions}
-                                player={player}
-                                duration={audioDurationSec || 30}
-                                selectedIndexes={selectedIndexes}
-                                onSelect={setSelectedIndexes}
-                                onUpdateCaption={(index, newCaption) => {
-                                    setCaptions(prev => {
-                                        const updated = prev.map((c, i) => i === index ? newCaption : c);
-                                        return updated.sort((a, b) => a.startMs - b.startMs);
-                                    });
-                                }}
-                                zoom={zoom}
-                                onZoom={handleSetZoom}
-                            />
-                        </div>
+                        {subtitleType === 'ass' ? (
+                            <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-muted/10" style={{
+                                backgroundImage: 'repeating-linear-gradient(45deg, var(--border) 0px, var(--border) 10px, transparent 10px, transparent 20px)',
+                                backgroundSize: '28px 28px'
+                            }}>
+                                <div className="absolute inset-0 bg-background/90 dark:bg-background/95 pointer-events-none" />
+                                <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center select-none">
+                                    <Lock className="w-8 h-8 text-primary mb-2.5 animate-pulse" />
+                                    <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Đã Khóa Timeline Phụ Đề ASS</h3>
+                                    <p className="text-xs text-muted-foreground mt-1.5 max-w-md leading-relaxed">
+                                        Không thể chỉnh sửa phụ đề ASS trực tiếp. Hệ thống đang hiển thị preview và hỗ trợ xuất video karaoke với đầy đủ hiệu ứng Aegisub gốc.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 overflow-hidden">
+                                <Timeline
+                                    audioUrl={currentAudioSrc}
+                                    captions={captions}
+                                    player={player}
+                                    duration={audioDurationSec || 30}
+                                    selectedIndexes={selectedIndexes}
+                                    onSelect={setSelectedIndexes}
+                                    onUpdateCaption={(index, newCaption) => {
+                                        setCaptions(prev => {
+                                            const updated = prev.map((c, i) => i === index ? newCaption : c);
+                                            return updated.sort((a, b) => a.startMs - b.startMs);
+                                        });
+                                    }}
+                                    zoom={zoom}
+                                    onZoom={handleSetZoom}
+                                />
+                            </div>
+                        )}
                     </div>
                 </section>
             </div>

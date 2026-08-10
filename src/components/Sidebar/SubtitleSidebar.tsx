@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { KaraokeCaption } from '../../types/karaoke';
 import { PlayerRef } from '@remotion/player';
-import { Upload, Download, List, Clock, Edit2, Trash2, Timer } from 'lucide-react';
+import { Upload, Download, List, Clock, Edit2, Trash2, Timer, Lock } from 'lucide-react';
 
 interface SubtitleSidebarProps {
     captions: KaraokeCaption[];
@@ -11,6 +11,7 @@ interface SubtitleSidebarProps {
     onExportSrt: () => void;
     onDeleteCaption: (index: number) => void;
     onShiftCaptions?: (offsetMs: number) => void;
+    subtitleType?: 'srt' | 'ass' | null;
 }
 
 // Hook to subscribe to player frame updates
@@ -51,7 +52,9 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
     onExportSrt,
     onDeleteCaption,
     onShiftCaptions,
+    subtitleType,
 }) => {
+    const isAss = subtitleType === 'ass';
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -136,27 +139,28 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                 </h3>
                 <div className="flex items-center gap-1">
                     <button
-                        onClick={() => setIsShifting(prev => !prev)}
-                        className={`p-1.5 rounded transition-colors ${isShifting ? 'bg-primary/20 text-primary' : 'hover:bg-secondary text-muted-foreground hover:text-foreground'}`}
-                        title="Dịch chuyển phụ đề"
+                        onClick={() => !isAss && setIsShifting(prev => !prev)}
+                        disabled={isAss}
+                        className={`p-1.5 rounded transition-colors ${isShifting && !isAss ? 'bg-primary/20 text-primary' : 'hover:bg-secondary text-muted-foreground hover:text-foreground'} ${isAss ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        title={isAss ? "Không thể dịch chuyển phụ đề ASS" : "Dịch chuyển phụ đề"}
                     >
                         <Timer className="w-4 h-4" />
                     </button>
-                    <label className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors" title="Nhập SRT">
+                    <label className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors" title="Nhập SRT/ASS">
                         <Upload className="w-4 h-4" />
                         <input type="file" accept=".srt,.ass,text/plain" onChange={onImportSrt} className="hidden" />
                     </label>
                     <button
                         onClick={onExportSrt}
                         className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
-                        title="Xuất SRT"
+                        title={isAss ? "Xuất ASS" : "Xuất SRT"}
                     >
                         <Download className="w-4 h-4" />
                     </button>
                 </div>
             </div>
 
-            {isShifting && (
+            {isShifting && !isAss && (
                 <div className="p-3 border-b border-border bg-secondary/10 flex flex-col gap-2.5 animate-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center justify-between">
                         <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
@@ -200,12 +204,12 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                     <div className="flex flex-col items-center justify-center text-muted-foreground/50 py-12 text-sm text-center px-4">
                         <List className="w-12 h-12 mb-3 opacity-20" />
                         <p>Chưa có phụ đề nào.</p>
-                        <p className="text-xs mt-1">Thêm từ Timeline hoặc nhập file SRT.</p>
+                        <p className="text-xs mt-1">Thêm từ Timeline hoặc nhập file SRT/ASS.</p>
                     </div>
                 ) : (
                     captions.map((cap, index) => {
                         const isCurrent = currentTime >= cap.startMs && currentTime < cap.endMs;
-                        const isEditing = editingIndex === index;
+                        const isEditing = !isAss && editingIndex === index;
 
                         return (
                             <div
@@ -233,7 +237,13 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                                         >
                                             <Trash2 className="w-3 h-3" />
                                         </button>
-                                        <span className="text-[10px] text-muted-foreground font-medium">#{index + 1}</span>
+                                        {isAss ? (
+                                            <span title="Đã khóa phụ đề ASS">
+                                                <Lock className="w-3 h-3 text-muted-foreground/40" />
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-muted-foreground font-medium">#{index + 1}</span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -255,12 +265,16 @@ export const SubtitleSidebar: React.FC<SubtitleSidebarProps> = ({
                                     </div>
                                 ) : (
                                     <div
-                                        onClick={(e) => { e.stopPropagation(); handleStartEdit(index, cap.text); }}
-                                        className="text-sm text-foreground/90 hover:text-foreground cursor-pointer hover:bg-secondary/50 p-1.5 -m-1.5 rounded transition-colors break-words whitespace-pre-wrap relative"
-                                        title="Click để sửa nội dung"
+                                        onClick={(e) => { if (isAss) return; e.stopPropagation(); handleStartEdit(index, cap.text); }}
+                                        className={`text-sm rounded transition-colors break-words whitespace-pre-wrap relative p-1.5 -m-1.5 ${
+                                            isAss
+                                                ? 'text-muted-foreground/40 line-through cursor-not-allowed select-none'
+                                                : 'text-foreground/90 hover:text-foreground cursor-pointer hover:bg-secondary/50'
+                                        }`}
+                                        title={isAss ? "Phụ đề ASS được khóa chỉnh sửa" : "Click để sửa nội dung"}
                                     >
                                         {cap.text || <span className="text-muted-foreground italic opacity-50">Trống</span>}
-                                        <Edit2 className="w-3 h-3 absolute top-2 right-2 opacity-0 group-hover:opacity-50 transition-opacity text-muted-foreground" />
+                                        {!isAss && <Edit2 className="w-3 h-3 absolute top-2 right-2 opacity-0 group-hover:opacity-50 transition-opacity text-muted-foreground" />}
                                     </div>
                                 )}
                             </div>

@@ -40,11 +40,23 @@ const resolveFontFamily = (selected: string) => {
     }
 };
 
-/** Phân tích và tính toán tiến trình hiển thị + chuỗi hiển thị đã gộp dấu cách */
-function getCaptionDisplayAndProgress(caption: KaraokeCaption, frameMs: number): {
-    displayText: string;
-    progress: number;
-} {
+interface RenderSegment {
+    text: string;
+    startMs: number;
+    endMs: number;
+    type: 'k' | 'kf';
+}
+
+function getOrCreateSegments(caption: KaraokeCaption): RenderSegment[] {
+    if (caption.segments && caption.segments.length > 0) {
+        return caption.segments.map(s => ({
+            text: s.text,
+            startMs: s.startMs,
+            endMs: s.endMs,
+            type: s.type || 'k'
+        }));
+    }
+
     const { startMs, endMs, text } = caption;
     const durationMs = endMs - startMs;
     
@@ -52,20 +64,12 @@ function getCaptionDisplayAndProgress(caption: KaraokeCaption, frameMs: number):
     const collapsedText = text.replace(/\s+/g, ' ');
 
     if (durationMs <= 0) {
-        return { displayText: collapsedText, progress: 1 };
-    }
-
-    const t = frameMs - startMs;
-    if (t <= 0) {
-        return { displayText: collapsedText, progress: 0 };
-    }
-    if (t >= durationMs) {
-        return { displayText: collapsedText, progress: 1 };
+        return [{ text: collapsedText, startMs, endMs, type: 'kf' }];
     }
 
     const parts = text.split(/(\s+)/);
     if (parts.length <= 1) {
-        return { displayText: collapsedText, progress: t / durationMs };
+        return [{ text: collapsedText, startMs, endMs, type: 'kf' }];
     }
 
     // Biểu diễn các token
@@ -75,29 +79,11 @@ function getCaptionDisplayAndProgress(caption: KaraokeCaption, frameMs: number):
             text: part,
             displayText: isSpace ? ' ' : part,
             isSpace,
-            widthWeight: 0,
             timeWeight: 0,
             startTimeMs: 0,
             endTimeMs: 0,
-            startProgress: 0,
-            endProgress: 0,
         };
     });
-
-    const displayText = tokens.map((tk) => tk.displayText).join('');
-
-    // Tính trọng số độ rộng hiển thị (widthWeight) dựa trên token.displayText
-    const getCharWidthWeight = (c: string) => (c === ' ' || /\s/.test(c)) ? 0.4 : 1.0;
-
-    let totalWidthWeight = 0;
-    for (const token of tokens) {
-        let w = 0;
-        for (let i = 0; i < token.displayText.length; i++) {
-            w += getCharWidthWeight(token.displayText[i]);
-        }
-        token.widthWeight = w;
-        totalWidthWeight += w;
-    }
 
     // Tính trọng số thời gian mặc định cho các từ dựa trên token.text (bản gốc)
     for (const token of tokens) {
@@ -134,36 +120,26 @@ function getCaptionDisplayAndProgress(caption: KaraokeCaption, frameMs: number):
     }
 
     if (totalTimeWeight <= 0) {
-        return { displayText, progress: t / durationMs };
+        return [{ text: collapsedText, startMs, endMs, type: 'kf' }];
     }
 
-    let currentWidthWeight = 0;
     let currentTimeWeight = 0;
-    for (const token of tokens) {
-        token.startProgress = currentWidthWeight / totalWidthWeight;
-        currentWidthWeight += token.widthWeight;
-        token.endProgress = currentWidthWeight / totalWidthWeight;
+    const generatedSegments: RenderSegment[] = [];
 
-        token.startTimeMs = (currentTimeWeight / totalTimeWeight) * durationMs;
+    for (const token of tokens) {
+        const tokenStartMs = (currentTimeWeight / totalTimeWeight) * durationMs;
         currentTimeWeight += token.timeWeight;
-        token.endTimeMs = (currentTimeWeight / totalTimeWeight) * durationMs;
+        const tokenEndMs = (currentTimeWeight / totalTimeWeight) * durationMs;
+
+        generatedSegments.push({
+            text: token.displayText,
+            startMs: startMs + tokenStartMs,
+            endMs: startMs + tokenEndMs,
+            type: 'kf',
+        });
     }
 
-    for (const token of tokens) {
-        if (t >= token.startTimeMs && t <= token.endTimeMs) {
-            const tokenDur = token.endTimeMs - token.startTimeMs;
-            if (tokenDur <= 0) {
-                return { displayText, progress: token.endProgress };
-            }
-            const tokenProgress = (t - token.startTimeMs) / tokenDur;
-            return {
-                displayText,
-                progress: token.startProgress + tokenProgress * (token.endProgress - token.startProgress)
-            };
-        }
-    }
-
-    return { displayText, progress: t / durationMs };
+    return generatedSegments;
 }
 
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
@@ -186,7 +162,24 @@ function KaraokeSubtitleLine({
     scale: number;
     fontFamily: string;
 }) {
-    const { displayText, progress } = getCaptionDisplayAndProgress(caption, frameMs);
+    const segments = useMemo(() => getOrCreateSegments(caption), [caption]);
+
+    // Nhóm các segment thành từ để tránh trình duyệt tự động ngắt dòng ở giữa một từ khi xuống dòng
+    const words = useMemo(() => {
+        const wordsList: RenderSegment[][] = [];
+        let currentWord: RenderSegment[] = [];
+        for (const seg of segments) {
+            currentWord.push(seg);
+            if (seg.text.endsWith(' ') || seg.text.startsWith(' ') || /^\s+$/.test(seg.text)) {
+                wordsList.push(currentWord);
+                currentWord = [];
+            }
+        }
+        if (currentWord.length > 0) {
+            wordsList.push(currentWord);
+        }
+        return wordsList;
+    }, [segments]);
 
     return (
         <div
@@ -194,8 +187,8 @@ function KaraokeSubtitleLine({
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
+                flexWrap: 'wrap',
                 padding: '20px 80px',
-                whiteSpace: 'pre-wrap',
                 textAlign: 'center',
                 fontFamily: fontFamily,
                 fontWeight: 'bold',
@@ -204,36 +197,74 @@ function KaraokeSubtitleLine({
                 opacity,
                 transform: `scale(1)`,
                 willChange: 'opacity, transform',
-                paintOrder: 'stroke fill',
                 position: 'relative',
             }}
         >
-            {/* Unsung layer (base) */}
-            <span style={{ color: unsungColor, WebkitTextStroke: '12px #000000' }}>
-                {displayText}
-            </span>
-            {/* Sung layer (overlay, smooth clip across entire line) */}
-            {progress > 0 && (
+            {words.map((wordSegs, wordIdx) => (
                 <span
+                    key={wordIdx}
                     style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
-                        right: 0,
-                        bottom: 0,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        padding: '20px 80px',
-                        color: sungColor,
-                        WebkitTextStroke: '12px #ffffff',
-                        clipPath: `inset(0 ${100 - progress * 100}% 0 0)`,
-                        pointerEvents: 'none',
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap',
                     }}
                 >
-                    {displayText}
+                    {wordSegs.map((seg, segIdx) => {
+                        let progress = 0;
+                        if (frameMs >= seg.endMs) {
+                            progress = 1;
+                        } else if (frameMs >= seg.startMs) {
+                            if (seg.type === 'k') {
+                                progress = 1;
+                            } else {
+                                const segDur = seg.endMs - seg.startMs;
+                                progress = segDur <= 0 ? 1 : (frameMs - seg.startMs) / segDur;
+                            }
+                        }
+
+                        return (
+                            <span
+                                key={segIdx}
+                                style={{
+                                    position: 'relative',
+                                    display: 'inline-block',
+                                    whiteSpace: 'pre',
+                                }}
+                            >
+                                {/* Unsung layer (base) */}
+                                <span
+                                    style={{
+                                        color: unsungColor,
+                                        WebkitTextStroke: '12px #000000',
+                                        paintOrder: 'stroke fill',
+                                    }}
+                                >
+                                    {seg.text}
+                                </span>
+                                {/* Sung layer (overlay, smooth clip across syllable) */}
+                                {progress > 0 && (
+                                    <span
+                                        style={{
+                                            position: 'absolute',
+                                            left: 0,
+                                            right: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            color: sungColor,
+                                            WebkitTextStroke: '12px #ffffff',
+                                            paintOrder: 'stroke fill',
+                                            clipPath: progress >= 1 ? undefined : `inset(-20px ${100 - progress * 100}% -20px -20px)`,
+                                            pointerEvents: 'none',
+                                            whiteSpace: 'pre',
+                                        }}
+                                    >
+                                        {seg.text}
+                                    </span>
+                                )}
+                            </span>
+                        );
+                    })}
                 </span>
-            )}
+            ))}
         </div>
     );
 }

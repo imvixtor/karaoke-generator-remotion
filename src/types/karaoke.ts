@@ -9,6 +9,7 @@ export type KaraokeCaption = {
         text: string;
         startMs: number;
         endMs: number;
+        type?: 'k' | 'kf';
     }[];
 };
 

@@ -29,7 +29,7 @@ async function getAvailableEncoder(): Promise<"h264_nvenc" | "libx264"> {
         } else {
             cachedEncoder = "libx264";
         }
-    } catch (e) {
+    } catch {
         cachedEncoder = "libx264";
     }
     return cachedEncoder;
