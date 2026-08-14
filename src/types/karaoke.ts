@@ -46,4 +46,10 @@ export type KaraokeCompositionProps = {
     videoLoop?: boolean; // Tùy chọn lặp lại video nền
     /** Nếu true, chỉ render lớp foreground (text/effect) trên nền trong suốt */
     renderForegroundOnly?: boolean;
+    /** Đếm nhịp trước khi vào lời hát */
+    countdownEnabled?: boolean;
+    countdownBpm?: number;
+    countdownBeats?: number;
+    countdownIcon?: string | null;
+    countdownUseBar?: boolean;
 };

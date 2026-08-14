@@ -9,7 +9,7 @@ import { SubtitleSidebar } from '../../components/Sidebar/SubtitleSidebar';
 import { parseSrtContent, parseAssContent } from '../../lib/parseSrt';
 import { useAudioDuration } from '../../hooks/useAudioDuration';
 import { useVideoDuration } from '../../hooks/useVideoDuration';
-import { Download, Settings, Layers, Type, Music, Image as ImageIcon, Video, X, Trash2, Moon, Sun, Monitor, Film, Lock } from 'lucide-react';
+import { Download, Settings, Layers, Type, Music, Image as ImageIcon, Video, X, Trash2, Moon, Sun, Monitor, Film, Lock, Timer } from 'lucide-react';
 import { useTheme } from "next-themes";
 
 const STORAGE_KEY = 'karaoke-editor-data';
@@ -109,6 +109,13 @@ export default function EditorPage() {
 
     const [subtitleType, setSubtitleType] = useState<'srt' | 'ass' | null>(null);
     const [rawAssContent, setRawAssContent] = useState<string | null>(null);
+
+    const [countdownEnabled, setCountdownEnabled] = useState(false);
+    const [countdownBpm, setCountdownBpm] = useState<number | string>(120);
+    const [countdownBeats, setCountdownBeats] = useState<number | string>(4);
+    const [countdownIcon, setCountdownIcon] = useState<string | null>(null);
+    const [countdownIconName, setCountdownIconName] = useState<string | null>(null);
+    const [countdownUseBar, setCountdownUseBar] = useState(true);
 
     // Clear warning after 3s
     useEffect(() => {
@@ -373,6 +380,29 @@ export default function EditorPage() {
         }
     }, []);
 
+    const handleIconUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setCountdownIconName(file.name);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const resp = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+            const json = await resp.json();
+            if (json.url) {
+                setCountdownIcon(json.url as string);
+            }
+        } catch (err) {
+            console.error('Upload icon failed', err);
+            alert('Không thể tải lên icon đếm ngược.');
+        }
+        e.target.value = '';
+    }, []);
+
     const handleExportSrt = useCallback(() => {
         if (subtitleType === 'ass') {
             if (!rawAssContent) {
@@ -495,6 +525,12 @@ export default function EditorPage() {
             videoLoop,
             subtitleType,
             rawAssContent,
+            countdownEnabled,
+            countdownBpm,
+            countdownBeats,
+            countdownIcon,
+            countdownIconName,
+            countdownUseBar,
         };
 
         // Debounce: chỉ ghi sau 300ms kể từ thay đổi cuối
@@ -516,7 +552,7 @@ export default function EditorPage() {
                 window.clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, renderSample, lyricsLayout, fontFamily, videoLoop, subtitleType, rawAssContent]);
+    }, [captions, backgroundType, backgroundDim, backgroundVideoStartTime, sungColor, fontSize, audioUrl, audioFileName, backgroundUrl, backgroundFileName, renderSample, lyricsLayout, fontFamily, videoLoop, subtitleType, rawAssContent, countdownEnabled, countdownBpm, countdownBeats, countdownIcon, countdownIconName, countdownUseBar]);
 
     // Load từ sessionStorage khi mount
     useEffect(() => {
@@ -542,6 +578,12 @@ export default function EditorPage() {
                 if (data.videoLoop !== undefined) setVideoLoop(data.videoLoop);
                 if (data.subtitleType) setSubtitleType(data.subtitleType);
                 if (data.rawAssContent) setRawAssContent(data.rawAssContent);
+                if (data.countdownEnabled !== undefined) setCountdownEnabled(data.countdownEnabled);
+                if (data.countdownBpm !== undefined) setCountdownBpm(data.countdownBpm);
+                if (data.countdownBeats !== undefined) setCountdownBeats(data.countdownBeats);
+                if (data.countdownIcon !== undefined) setCountdownIcon(data.countdownIcon);
+                if (data.countdownIconName !== undefined) setCountdownIconName(data.countdownIconName);
+                if (data.countdownUseBar !== undefined) setCountdownUseBar(data.countdownUseBar);
             } catch (e) {
                 console.error('Failed to load saved data:', e);
             }
@@ -565,6 +607,11 @@ export default function EditorPage() {
         lyricsLayout,
         fontFamily,
         videoLoop,
+        countdownEnabled,
+        countdownBpm: Number(countdownBpm) || 120,
+        countdownBeats: Number(countdownBeats) || 4,
+        countdownIcon,
+        countdownUseBar,
     };
 
     const [renderProgress, setRenderProgress] = useState<number | null>(null);
@@ -602,6 +649,9 @@ export default function EditorPage() {
         }
         if (inputProps.backgroundSrc && inputProps.backgroundSrc.startsWith('/')) {
             inputProps.backgroundSrc = window.location.origin + inputProps.backgroundSrc;
+        }
+        if (inputProps.countdownIcon && inputProps.countdownIcon.startsWith('/')) {
+            inputProps.countdownIcon = window.location.origin + inputProps.countdownIcon;
         }
 
         try {
@@ -1041,6 +1091,108 @@ export default function EditorPage() {
                                     >
                                         Căn giữa
                                     </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div className="h-px bg-border my-2" />
+
+                        {/* Beat Countdown Section */}
+                        <section className="space-y-3">
+                            <div className="flex items-center justify-between text-sm font-medium text-foreground">
+                                <span className="flex items-center gap-2">
+                                    <Timer className="w-4 h-4 text-muted-foreground" />
+                                    Đếm nhịp trước lời
+                                </span>
+                                <input
+                                    type="checkbox"
+                                    checked={countdownEnabled}
+                                    onChange={(e) => setCountdownEnabled(e.target.checked)}
+                                    className="rounded border-border bg-background text-primary focus:ring-ring w-4 h-4 cursor-pointer"
+                                />
+                            </div>
+
+                            <div className={`space-y-3 transition-opacity duration-200 ${!countdownEnabled ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+                                <div className="space-y-1.5">
+                                    <span className="text-xs text-muted-foreground">Nhịp độ (BPM)</span>
+                                    <input
+                                        type="number"
+                                        min={40}
+                                        max={300}
+                                        value={countdownBpm}
+                                        onChange={(e) => setCountdownBpm(e.target.value)}
+                                        className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
+                                        disabled={!countdownEnabled}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <span className="text-xs text-muted-foreground">Số phách đếm ngược</span>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={16}
+                                        value={countdownBeats}
+                                        onChange={(e) => setCountdownBeats(e.target.value)}
+                                        className="w-full bg-secondary/50 p-2 rounded-lg border border-border text-sm"
+                                        disabled={!countdownEnabled}
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-1.5">
+                                    <input
+                                        type="checkbox"
+                                        id="countdownUseBar"
+                                        checked={countdownUseBar}
+                                        onChange={(e) => setCountdownUseBar(e.target.checked)}
+                                        className="rounded border-border bg-background text-primary focus:ring-ring w-4 h-4 cursor-pointer"
+                                        disabled={!countdownEnabled}
+                                    />
+                                    <label
+                                        htmlFor="countdownUseBar"
+                                        className="text-xs text-muted-foreground cursor-pointer select-none"
+                                    >
+                                        Đếm theo Ô nhịp (Bar - 4 phách)
+                                    </label>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <span className="text-xs text-muted-foreground">Icon đếm ngược (Tùy chọn)</span>
+                                    {countdownIcon ? (
+                                        <div className="flex items-center justify-between p-2 bg-secondary/30 rounded border border-border group gap-2">
+                                            <div className="flex items-center gap-2 truncate overflow-hidden">
+                                                <div className="w-6 h-6 rounded bg-secondary flex items-center justify-center shrink-0 overflow-hidden border border-border">
+                                                    <img
+                                                        src={countdownIcon}
+                                                        alt="Preview"
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                </div>
+                                                <span className="text-xs truncate flex-1" title={countdownIconName ?? 'Icon'}>
+                                                    {countdownIconName ?? 'Icon'}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setCountdownIcon(null);
+                                                    setCountdownIconName(null);
+                                                }}
+                                                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                                title="Xóa icon"
+                                                disabled={!countdownEnabled}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleIconUpload}
+                                            className="w-full text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 bg-secondary/50 rounded-lg border border-border text-foreground p-1"
+                                            disabled={!countdownEnabled}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </section>

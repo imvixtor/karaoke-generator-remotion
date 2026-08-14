@@ -142,6 +142,106 @@ function getOrCreateSegments(caption: KaraokeCaption): RenderSegment[] {
     return generatedSegments;
 }
 
+interface CountdownProps {
+    frameMs: number;
+    countdownStartMs: number;
+    intervalDurationMs: number;
+    countdownBeats: number;
+    iconSrc?: string | null;
+    fontSize: number;
+    unsungColor: string;
+}
+
+const Countdown: React.FC<CountdownProps> = ({
+    frameMs,
+    countdownStartMs,
+    intervalDurationMs,
+    countdownBeats,
+    iconSrc,
+    fontSize,
+    unsungColor,
+}) => {
+    const size = Math.max(24, fontSize * 0.4);
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                left: '80px',
+                bottom: '100%',
+                marginBottom: '-10px',
+                display: 'flex',
+                gap: `${size * 0.3}px`,
+                alignItems: 'center',
+                pointerEvents: 'none',
+                zIndex: 10,
+            }}
+        >
+            {Array.from({ length: countdownBeats }).map((_, i) => {
+                // Right-to-left disappearance logic:
+                // Dot i (from left, 0 to N-1) disappears after (countdownBeats - i) beats.
+                const dotEndMs = countdownStartMs + (countdownBeats - i) * intervalDurationMs;
+                const timeRemaining = dotEndMs - frameMs;
+                
+                let opacity = 0;
+                let scale = 0;
+                let visibility: 'visible' | 'hidden' = 'hidden';
+
+                if (frameMs < dotEndMs) {
+                    visibility = 'visible';
+                    if (timeRemaining < 150) {
+                        const progress = Math.max(0, timeRemaining / 150);
+                        opacity = progress;
+                        scale = 0.5 + 0.5 * progress;
+                    } else {
+                        opacity = 1;
+                        scale = 1;
+                    }
+                }
+
+                return (
+                    <div
+                        key={i}
+                        style={{
+                            width: `${size}px`,
+                            height: `${size}px`,
+                            visibility,
+                            opacity,
+                            transform: `scale(${scale})`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        {iconSrc ? (
+                            <Img
+                                src={iconSrc}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                }}
+                            />
+                        ) : (
+                            <div
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    backgroundColor: unsungColor,
+                                    border: `${Math.max(2, size * 0.12)}px solid #000000`,
+                                    boxShadow: '0px 0px 4px rgba(0, 0, 0, 0.8)',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
 /** Hiển thị một dòng phụ đề với hiệu ứng karaoke (chữ đã hát đổi màu) */
 function KaraokeSubtitleLine({
     caption,
@@ -286,6 +386,11 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
     fontFamily = 'Oswald', // Default font
     videoLoop = false,
     renderForegroundOnly = false,
+    countdownEnabled = false,
+    countdownBpm = 120,
+    countdownBeats = 4,
+    countdownIcon = null,
+    countdownUseBar = true,
 }) => {
     const frame = useCurrentFrame();
     const frameMs = (frame / fps) * 1000;
@@ -293,6 +398,11 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
 
     // Thời gian "báo trước" để hiện câu trước khi chữ bắt đầu chạy (ms)
     const LEAD_IN_MS = 1000;
+
+    // Đếm nhịp trước khi vào lời hát
+    const beatDurationMs = (60 / countdownBpm) * 1000;
+    const intervalDurationMs = countdownUseBar ? 4 * beatDurationMs : beatDurationMs;
+    const countdownDurationMs = countdownBeats * intervalDurationMs;
 
     // Ngưỡng khoảng cách giữa 2 câu để áp dụng fade-in/fade-out (ms)
     const GAP_THRESHOLD_MS = 5000;
@@ -371,11 +481,23 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
         if (!caption) return null;
         const meta = chainMeta[index];
 
+        // Xác định xem câu này có hiển thị đếm nhịp hay không
+        // Đếm nhịp hiển thị nếu khoảng cách lớn hơn hoặc bằng thời gian đếm nhịp
+        const hasCountdown = countdownEnabled && (
+            index === 0
+                ? caption.startMs >= countdownDurationMs
+                : caption.startMs - captions[index - 1].endMs >= countdownDurationMs
+        );
+        const countdownStartMs = caption.startMs - countdownDurationMs;
+
         // Ẩn toàn bộ chuỗi cho đến LEAD_IN_MS trước khi câu đầu tiên của chuỗi bắt đầu.
         // - Câu đầu chuỗi: ẩn đến chainStartMs - LEAD_IN_MS
         // - Câu trong chuỗi: cũng ẩn đến chainStartMs - LEAD_IN_MS → hiện bình thường khi chuỗi đã bắt đầu
+        // Nếu có đếm nhịp, cho phép hiển thị sớm hơn từ thời điểm bắt đầu đếm nhịp
         const chainVisibleFrom = (meta?.chainStartMs ?? caption.startMs) - LEAD_IN_MS;
-        if (frameMs < chainVisibleFrom) {
+        const visibleFrom = hasCountdown ? Math.min(chainVisibleFrom, countdownStartMs) : chainVisibleFrom;
+
+        if (frameMs < visibleFrom) {
             return null;
         }
 
@@ -392,7 +514,18 @@ export const KaraokeComposition: React.FC<KaraokeCompositionProps> = ({
         return (
             <div style={{ ...positionStyle, width: '100%', textAlign: align, padding: '0 80px' }}>
                 <div style={{ display: align === 'center' ? 'flex' : 'block', justifyContent: 'center' }}>
-                    <div style={{ display: 'inline-block', textAlign: 'center' }}>
+                    <div style={{ display: 'inline-block', textAlign: 'center', position: 'relative' }}>
+                        {hasCountdown && frameMs >= countdownStartMs && frameMs < caption.startMs && (
+                            <Countdown
+                                frameMs={frameMs}
+                                countdownStartMs={countdownStartMs}
+                                intervalDurationMs={intervalDurationMs}
+                                countdownBeats={countdownBeats}
+                                iconSrc={countdownIcon}
+                                fontSize={fontSize}
+                                unsungColor={unsungColor}
+                            />
+                        )}
                         <KaraokeSubtitleLine
                             caption={caption}
                             frameMs={frameMs}
